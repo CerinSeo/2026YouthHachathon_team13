@@ -82,6 +82,21 @@ p, h1, h2, small, strong { overflow-wrap: anywhere; }
 .home-intro { position: relative; grid-area: 1 / 1; display: grid; justify-items: center; gap: .75rem;
   padding: calc(1.35rem + env(safe-area-inset-top)) 1rem 1.35rem; background: var(--white); text-align: center; }
 .home-intro .menu-button { position: absolute; top: calc(.75rem + env(safe-area-inset-top)); right: .75rem; }
+.home-intro:has(.first-visit-tip) { z-index: 2; }
+.button.menu-button--highlight { color: var(--on-primary); background: var(--primary); border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-container), 0 0 0 6px var(--primary); }
+.button.menu-button--highlight:hover { background: #094EAA; }
+.button.menu-button--highlight:focus-visible { outline-offset: 8px; }
+.button.menu-button--highlight::after { content: ''; position: absolute; top: calc(100% + .65rem);
+  width: .65rem; height: .65rem; border-start-start-radius: .15rem;
+  background: var(--primary); transform: rotate(45deg); }
+.first-visit-tip { position: absolute; top: calc(4.65rem + env(safe-area-inset-top)); right: .75rem;
+  width: min(25rem, calc(100% - 1.5rem)); max-height: calc(100svh - 5.5rem - env(safe-area-inset-top));
+  overflow: auto; overscroll-behavior: contain; padding: 1rem; border: 2px solid var(--primary); border-radius: 1rem;
+  text-align: start; background: var(--white); box-shadow: 0 8px 24px #102A5633; }
+.first-visit-tip ol { display: grid; gap: .7rem; padding-inline-start: 1.35rem; margin-block: .75rem; }
+.first-visit-tip li { word-break: keep-all; overflow-wrap: anywhere; }
+.first-visit-tip li strong { display: block; }
 .home-brand { padding-inline: 52px; font-size: 1.45rem; font-weight: 850; overflow-wrap: anywhere; }
 .home-brand span { color: var(--primary); }
 .home-intro h1 { margin: 0; max-width: 15ch; font-size: clamp(1.8rem, 8vw, 2.45rem); word-break: keep-all; }
@@ -152,7 +167,7 @@ p, h1, h2, small, strong { overflow-wrap: anywhere; }
 .trip-bar > div { flex: 1; min-width: 0; }
 .trip-bar h1 { font-size: 1.25rem; margin: 0; letter-spacing: 0; }
 .input-screen .trip-bar h1 { font-size: 1.35rem; }
-.trip-bar p { font-weight: 800; font-size: 1.125rem; margin: 0; }
+.result-heading h1 { font-weight: 800; }
 .skip-link--map:focus { z-index: 520; }
 .map-loading { display: grid; min-height: 12rem; place-content: center;
   margin: 0; padding: 1rem; border-radius: 1.25rem; background: var(--surface-mid); text-align: center; }

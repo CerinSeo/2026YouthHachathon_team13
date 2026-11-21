@@ -9,6 +9,7 @@ import { currentHour, dateTimeFromKst, distanceLabel, duration } from './time';
 import { searchPlaces } from '../services/api';
 
 const MapView = lazy(() => import('../map/RouteMap').then((module) => ({ default: module.RouteMap })));
+const firstVisitKey = 'bingbingzero:demo-intro-seen';
 const demoTime = '2026-02-02T13:00';
 const demoCases = {
   yangjae: { origin: '양재역 4번출구', destination: '양재동우체국' },
@@ -96,6 +97,14 @@ export function App() {
   const [draftPoint, setDraftPoint] = useState<Coordinate | null>(null);
   const [mapLocation, setMapLocation] = useState<Coordinate | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [firstVisit, setFirstVisit] = useState(() => {
+    try {
+      return window.localStorage.getItem(firstVisitKey) !== '1';
+    } catch {
+      return true;
+    }
+  });
+  const showFirstVisit = stage === 'home' && firstVisit;
   const [now, setNow] = useState(currentHour);
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState('');
@@ -111,6 +120,7 @@ export function App() {
   const menuButton = useRef<HTMLButtonElement>(null);
   const menuDialog = useRef<HTMLDialogElement>(null);
   const menuTitle = useRef<HTMLHeadingElement>(null);
+  const firstVisitTitle = useRef<HTMLHeadingElement>(null);
   const originButton = useRef<HTMLButtonElement>(null);
   const destinationButton = useRef<HTMLButtonElement>(null);
   const previousStage = useRef(stage);
@@ -128,13 +138,22 @@ export function App() {
     return () => { window.clearInterval(timer); active.current?.abort(); };
   }, []);
   useEffect(() => {
-    if (stage !== 'home' || requestedHomeLocation.current || !navigator.geolocation) return;
+    if (!showFirstVisit) return;
+    firstVisitTitle.current?.focus({ preventScroll: true });
+    try {
+      window.localStorage.setItem(firstVisitKey, '1');
+    } catch {
+      // Dismissal still works for the current visit if storage is blocked.
+    }
+  }, [showFirstVisit]);
+  useEffect(() => {
+    if (stage !== 'home' || showFirstVisit || menuOpen || requestedHomeLocation.current || !navigator.geolocation) return;
     requestedHomeLocation.current = true;
     const started = version.current;
     navigator.geolocation.getCurrentPosition(({ coords }) => {
       if (version.current === started) setMapLocation([coords.longitude, coords.latitude]);
     }, () => {}, { timeout: 8000, maximumAge: 120_000 });
-  }, [stage]);
+  }, [stage, showFirstVisit, menuOpen]);
   const openNotificationRoute = useEffectEvent(() => {
     const url = new URL(window.location.href);
     if (!isYangjaeNotification(url.searchParams)) return;
@@ -148,6 +167,7 @@ export function App() {
   }, []);
 
   function go(next: Stage) {
+    if (showFirstVisit) setFirstVisit(false);
     active.current?.abort();
     version.current++;
     setBusy(null);
@@ -304,7 +324,13 @@ export function App() {
     });
   }
 
+  function closeFirstVisit() {
+    setFirstVisit(false);
+    menuButton.current?.focus();
+  }
+
   function openMenu() {
+    setFirstVisit(false);
     menuDialog.current?.showModal();
     setMenuOpen(true);
     menuTitle.current?.focus();
@@ -353,9 +379,24 @@ export function App() {
         <header className="home-intro">
           <div className="home-brand"><span aria-hidden="true">❄</span> 빙빙제로</div>
           <h1 id="home-title">빙판길을 피해 걷는 길</h1>
-          <button type="button" ref={menuButton} className="button icon menu-button"
+          <button type="button" ref={menuButton}
+            className={`button icon menu-button${showFirstVisit ? ' menu-button--highlight' : ''}`}
             aria-label="메뉴" aria-haspopup="dialog" aria-controls="app-menu" aria-expanded={menuOpen}
             onClick={openMenu}><span className="menu-glyph" aria-hidden="true" /></button>
+          {showFirstVisit && <section className="first-visit-tip" role="dialog" aria-labelledby="first-visit-title"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') { event.preventDefault(); closeFirstVisit(); }
+            }}>
+            <h2 id="first-visit-title" ref={firstVisitTitle} tabIndex={-1}>빙빙제로 시연 안내</h2>
+            <ol>
+              <li><strong>알림 허용</strong> ‘알림 설정’에서 잠금화면 알림을 켜세요.</li>
+              <li><strong>시연 경로 보기</strong> ‘경로 바로 열기’에서 직접 걷지 않고도 결빙 위험 구간과 길 안내를 확인할 수 있어요.</li>
+            </ol>
+            <div className="button-row">
+              <button type="button" className="button filled" onClick={openMenu}>메뉴 열기</button>
+              <button type="button" className="button outlined" onClick={closeFirstVisit}>닫기</button>
+            </div>
+          </section>}
         </header>
         <div className="home-map-layer">
           <Suspense fallback={mapLoading}>
@@ -421,7 +462,7 @@ export function App() {
       {stage === 'results' && result && <section className={guidanceMode === 'idle' ? 'route-screen route-screen--results' : 'route-screen route-screen--guidance'}>
         <header className="trip-bar result-heading" hidden={guidanceMode !== 'idle'}>
           {backButton('confirm', '출발지와 목적지 수정')}
-          <div><h1 ref={title} tabIndex={-1}>경로 결과</h1><p>{origin?.name} → {destination?.name}</p></div>
+          <div><h1 ref={title} tabIndex={-1}>{origin?.name} → {destination?.name}</h1></div>
         </header>
         <div className="guidance-top" ref={setInstructionPortal} />
         <div className="workspace">
