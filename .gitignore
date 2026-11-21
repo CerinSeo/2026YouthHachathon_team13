@@ -1,0 +1,25 @@
+.DS_Store
+node_modules/
+dist/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+*.log
+*.tsbuildinfo
+__pycache__/
+.venv/
+
+# Local credentials and working data
+.env*
+*.env
+*.env.*
+.dev.vars*
+*.pem
+*.key
+*.p12
+*.pfx
+/staticdata/
+*.osm.pbf
+*.tif
+*.tiff
