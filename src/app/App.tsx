@@ -11,11 +11,12 @@ import { searchPlaces } from '../services/api';
 const MapView = lazy(() => import('../map/RouteMap').then((module) => ({ default: module.RouteMap })));
 const firstVisitKey = 'bingbingzero:demo-intro-seen';
 const demoTime = '2026-02-02T13:00';
-const demoCases = {
-  yangjae: { origin: '양재역 4번출구', destination: '양재동우체국' },
-  hyehwa: { origin: '혜화역 3번출구', destination: '서울대학교병원 동문' },
-  cityHall: { origin: '시청역 5번출구', destination: '서울광장' },
-};
+type DemoCase = { label: string; origin: string; destination: string };
+const yangjaeDemo: DemoCase = { label: '양재역에서 우체국까지', origin: '양재역 4번출구', destination: '양재동우체국' };
+const demoCases: DemoCase[] = [
+  yangjaeDemo,
+  { label: '양재역에서 KT 양재지사까지', origin: '양재역 6번출구', destination: 'KT 양재지사' },
+];
 type Stage = 'home' | 'notification' | 'confirm' | 'results';
 type Field = 'origin' | 'destination';
 const routeErrors: Record<string, string> = {
@@ -159,7 +160,7 @@ export function App() {
     if (!isYangjaeNotification(url.searchParams)) return;
     url.searchParams.delete('notice');
     window.history.replaceState(window.history.state, '', url);
-    void applyDemo('yangjae', true);
+    void applyDemo(yangjaeDemo, true);
   });
   useEffect(() => {
     const timer = window.setTimeout(openNotificationRoute, 0);
@@ -231,14 +232,13 @@ export function App() {
       setError('현재 위치를 확인하지 못했어요. 장소 이름이나 주소로 검색해 주세요.');
     }, { timeout: 8000, maximumAge: 0 });
   }
-  async function applyDemo(id: keyof typeof demoCases, openResults = false) {
+  async function applyDemo({ origin, destination }: DemoCase, openResults = false) {
     active.current?.abort();
     const controller = new AbortController();
     active.current = controller;
     setBusy('demo');
     setError('');
     try {
-      const { origin, destination } = demoCases[id];
       const [starts, ends] = await Promise.all([
         searchPlaces(origin, controller.signal), searchPlaces(destination, controller.signal),
       ]);
@@ -366,9 +366,8 @@ export function App() {
         <details className="menu-section">
           <summary>경로 바로 열기</summary>
           <div className="menu-actions">
-            {([['yangjae', '양재역에서 우체국까지'], ['hyehwa', '혜화역에서 병원까지'], ['cityHall', '시청역에서 서울광장까지']] as const)
-              .map(([id, label]) => <button key={id} type="button" className="button outlined"
-                onClick={() => { menuDialog.current?.close(); void applyDemo(id); }}>{label}</button>)}
+            {demoCases.map((scenario) => <button key={scenario.label} type="button" className="button outlined"
+              onClick={() => { menuDialog.current?.close(); void applyDemo(scenario); }}>{scenario.label}</button>)}
           </div>
         </details>
       </>}
@@ -414,7 +413,7 @@ export function App() {
       {stage === 'notification' && <section className="panel">
         <h1 ref={title} tabIndex={-1}>양재 도보 경로</h1>
         <p>양재역 4번 출구 → 양재동우체국</p>
-        {error && <button className="button filled" onClick={() => void applyDemo('yangjae', true)}>다시 시도</button>}
+        {error && <button className="button filled" onClick={() => void applyDemo(yangjaeDemo, true)}>다시 시도</button>}
       </section>}
       {stage === 'confirm' && <section className="route-screen input-screen">
         <header className="trip-bar">

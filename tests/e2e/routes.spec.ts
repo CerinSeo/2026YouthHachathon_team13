@@ -229,17 +229,40 @@ test('live historical demo renders a traceable walking comparison', async ({ pag
   await expect(page.getByRole('button', { name: '경로 단계 보기' })).toBeFocused();
 });
 
-for (const name of ['혜화역에서 병원까지', '시청역에서 서울광장까지']) {
-  test(`replays the historical walking comparison for ${name}`, async ({ page }) => {
-    test.skip(process.env.LIVE_DEMO_TEST !== '1', 'Requires local TMAP key and upstream connections');
-    await page.goto('/');
-    await openDemo(page, name);
-    await expect(page.getByRole('heading', { name: '출발지와 목적지' })).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('button', { name: '경로 확인하기' }).click();
-    await expect(page.getByRole('radio', { name: /일반 경로/ })).toBeVisible();
-    await expect(page.getByText(/과거 예보 · 결빙 위험/)).toBeVisible();
+test('replays a ten-minute walk with predicted icing in the middle', async ({ page }) => {
+  test.skip(process.env.LIVE_DEMO_TEST !== '1', 'Requires local TMAP key and archived weather');
+  await page.route('**/api/weather/hourly?*', (route) => route.abort());
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.goto('/');
+  await page.getByRole('button', { name: '메뉴', exact: true }).click();
+  const demoMenu = page.locator('.menu-section').filter({ hasText: '경로 바로 열기' });
+  await demoMenu.getByText('경로 바로 열기', { exact: true }).click();
+  await expect(demoMenu.getByRole('button')).toHaveText(['양재역에서 우체국까지', '양재역에서 KT 양재지사까지']);
+  await demoMenu.getByRole('button', { name: '양재역에서 KT 양재지사까지' }).click();
+  await expect(page.getByRole('heading', { name: '출발지와 목적지' })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: '경로 확인하기' }).click();
+  await expect(page.getByRole('heading', { name: '양재역 6번출구 → KT 양재지사' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('radio', { name: /일반 경로.*약 9분/ })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /추천 경로.*약 11분/ })).toBeVisible();
+  await expect(page.getByText('과거 예보 · 결빙 위험 구간 1곳')).toBeVisible();
+  await expect(page.locator('.marker--risk')).toBeVisible();
+
+  const risk = page.locator('.map path[stroke="#006DB3"]').first();
+  const positionAlongRoute = await risk.evaluate((riskPath: SVGPathElement) => {
+    const baseline = riskPath.parentElement!.querySelector<SVGPathElement>('path[stroke="#65778A"]')!;
+    const ice = riskPath.getPointAtLength(riskPath.getTotalLength() / 2);
+    const length = baseline.getTotalLength();
+    let closest = { position: 0, distance: Infinity };
+    for (let i = 0; i <= 100; i++) {
+      const point = baseline.getPointAtLength(length * i / 100);
+      const distance = Math.hypot(point.x - ice.x, point.y - ice.y);
+      if (distance < closest.distance) closest = { position: i, distance };
+    }
+    return closest.position;
   });
-}
+  expect(positionAlongRoute).toBeGreaterThan(30);
+  expect(positionAlongRoute).toBeLessThan(70);
+});
 
 test('blocks local credential and original input files', async ({ request }) => {
   for (const path of ['/.dev.vars', '/staticdata/.env.local', '/staticdata/surface.json']) {
