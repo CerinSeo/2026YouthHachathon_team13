@@ -136,6 +136,11 @@ p, h1, h2, small, strong { overflow-wrap: anywhere; }
 .risk-summary { display: flex; align-items: baseline; gap: .45rem; font-weight: 700; font-size: .9375rem; }
 .risk-summary span { color: #006DB3; }
 .route-details { margin-top: .8rem; padding: .8rem; border-radius: .75rem; background: var(--surface-low); }
+.route-guidance { margin-top: 1rem; padding: 1rem; background: var(--surface-low); border: 1px solid var(--divider); border-radius: 1.25rem; }
+.guidance-instruction { font-size: 1.25rem; font-weight: 750; }
+.guidance-options { display: flex; gap: .5rem 1rem; flex-wrap: wrap; }
+.guidance-options label { display: flex; align-items: center; gap: .4rem; min-height: 3rem; }
+.guidance-options input { width: 1.1rem; height: 1.1rem; accent-color: var(--primary); }
 .notice { padding: .75rem 1rem; border-radius: .75rem; margin: .75rem 0; }
 .notice p:last-child { margin-bottom: 0; }
 .notice.warning { background: #FFE3D4; color: #4B1900; }

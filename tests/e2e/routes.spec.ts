@@ -15,6 +15,18 @@ test('mobile home and search keep controls visible with enlarged text', async ({
 
 test('live historical demo renders a traceable walking comparison', async ({ page }) => {
   test.skip(process.env.LIVE_DEMO_TEST !== '1', 'Requires local TMAP key and upstream connections');
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [], cancel: () => undefined,
+      speak: (utterance: SpeechSynthesisUtterance) => {
+        document.documentElement.dataset.spoken = `${utterance.lang} ${utterance.text}`;
+      },
+    } });
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: (pattern: number | number[]) => {
+      document.documentElement.dataset.vibration = JSON.stringify(pattern);
+      return true;
+    } });
+  });
   await page.goto('/');
   await page.getByRole('button', { name: '양재 시연 열기' }).click();
   await expect(page.getByRole('heading', { name: '경로 확인' })).toBeVisible({ timeout: 20_000 });
@@ -27,6 +39,13 @@ test('live historical demo renders a traceable walking comparison', async ({ pag
   await expect(page.getByRole('radio', { name: /일반 경로/ })).toBeVisible();
   await expect(page.getByText(/결빙 위험 예상구간 [1-9]/)).toBeVisible();
   await expect(page.getByText(/강수량|결빙 점수|임계값/)).toHaveCount(0);
+  await page.getByRole('button', { name: '안내 미리보기' }).click();
+  await expect(page.getByRole('heading', { name: '안내 미리보기' })).toBeFocused();
+  await page.getByRole('button', { name: '다시 듣기' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-spoken', /^ko-KR .+/);
+  await expect(page.locator('html')).toHaveAttribute('data-vibration', /^\[|^180$/);
+  await page.getByRole('button', { name: '안내 종료' }).click();
+  await expect(page.getByRole('button', { name: '안내 미리보기' })).toBeFocused();
 });
 
 for (const name of ['혜화역에서 병원까지', '시청역에서 서울광장까지']) {

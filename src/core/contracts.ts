@@ -41,7 +41,7 @@ export interface WalkingRoute {
   coordinates: Coordinate[];
   distanceM: number;
   durationSeconds: number;
-  turns: { direction: 'left' | 'right'; coordinates: Coordinate }[];
+  turns: { direction: 'left' | 'right'; coordinates: Coordinate; vertexIndex: number }[];
 }
 
 export interface RiskSegment {

@@ -3,6 +3,7 @@ import { type Coordinate, type Place, type RouteComparison, RouteError, type Rou
 import { compareRoutes, routeMetadata } from '../core/routing';
 import { inCity } from '../core/geo';
 import { PlaceSearch } from './PlaceSearch';
+import { RouteGuidance } from './RouteGuidance';
 import { currentHour, dateTimeFromKst, distanceLabel, duration, formatKst, hourMs, localInput, weatherMode } from './time';
 import { searchPlaces } from '../services/api';
 
@@ -68,7 +69,7 @@ function RouteResults({ result, onRetry, selected, onSelect }: {
     {result.dataAsOf && <p className="risk-summary"><span aria-hidden="true">❄</span>
       {riskCount ? `일반 경로의 결빙 위험 예상구간 ${riskCount}곳` : '일반 경로에서 확인된 결빙 위험 예상구간이 없어요.'}</p>}
     {recommendation.route && <p className="meta">결빙 위험 예상구간을 고려한 경로예요. 실제 노면 상태에 따라 통행 위험이 달라질 수 있어요.</p>}
-    {details && <button className="button filled" aria-expanded={more} aria-controls="route-details"
+    {details && <button className="button outlined" aria-expanded={more} aria-controls="route-details"
       onClick={() => setMore(!more)}>{more ? '경로 상세 접기' : '경로 자세히 보기'}</button>}
     {more && details && <div id="route-details" className="route-details">
       <h3>{selected === 'safe' ? '안전 경로 상세' : '일반 경로 상세'}</h3>
@@ -76,6 +77,8 @@ function RouteResults({ result, onRetry, selected, onSelect }: {
       <p>위험 예상은 기상·환경 자료의 추정 결과예요. 지도 자료에 계단이나 경사가 기록되지 않은 구간이 있을 수 있어요.</p>
       <p className="meta">보행망 기준 {formatKst(result.networkAsOf)} · OpenStreetMap</p>
     </div>}
+    {details && <RouteGuidance key={selected} route={details} risks={result.riskSegments}
+      live={result.mode === 'current' && Date.parse(result.selectedAt) === currentHour()} />}
   </section>;
 }
 

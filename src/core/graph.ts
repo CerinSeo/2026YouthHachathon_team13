@@ -148,7 +148,7 @@ export function asRoute(edges: Edge[]): WalkingRoute {
   for (let i = 1; i < coordinates.length - 1; i++) {
     const angle = (heading(coordinates[i], coordinates[i + 1]) - heading(coordinates[i - 1], coordinates[i]) + 540) % 360 - 180;
     if (Math.abs(angle) >= 45 && Math.abs(angle) <= 150 && edges[i - 1].meters >= 2 && edges[i].meters >= 2) {
-      turns.push({ direction: angle < 0 ? 'left' : 'right', coordinates: coordinates[i] });
+      turns.push({ direction: angle < 0 ? 'left' : 'right', coordinates: coordinates[i], vertexIndex: i });
     }
   }
   return { edgeIds: edges.map((edge) => edge.id), coordinates, distanceM, durationSeconds: distanceM, turns };
