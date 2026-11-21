@@ -33,17 +33,24 @@ test('a background push registers a system notification through the service work
   await expect.poll(() => registrationId).toBeTruthy();
   await cdp.send('ServiceWorker.deliverPushMessage', {
     origin: new URL(page.url()).origin, registrationId: registrationId!,
-    data: JSON.stringify({ title: '[시연] 자주 다니는 길에 결빙이 예상돼요', body: '과거 기상 재현' }),
+    data: JSON.stringify({
+      title: '[시연] 양재 도보 경로에 결빙이 예상돼요',
+      body: '양재역 4번 출구 → 양재동우체국. 눌러서 과거 예보로 계산한 안전 경로를 확인하세요.',
+    }),
   });
   await expect.poll(() => page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
-    return (await registration.getNotifications()).map((notification) => notification.title);
-  })).toContain('[시연] 자주 다니는 길에 결빙이 예상돼요');
+    return (await registration.getNotifications()).map(({ title, body }) => ({ title, body }));
+  })).toContainEqual({
+    title: '[시연] 양재 도보 경로에 결빙이 예상돼요',
+    body: '양재역 4번 출구 → 양재동우체국. 눌러서 과거 예보로 계산한 안전 경로를 확인하세요.',
+  });
 });
 
-test('the device notification link opens the real Yangjae historical comparison in one tap', async ({ page }) => {
+test('the device notification link opens the real Yangjae historical comparison', async ({ page }) => {
   test.skip(process.env.LIVE_DEMO_TEST !== '1', 'Requires local TMAP key and upstream connections');
-  await page.goto('/?notice=icing-demo');
+  await page.goto('/?notice=yangjae-demo');
+  await expect(page.getByRole('heading', { name: /안전 경로를 한눈에/ })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '경로 결과' })).toBeFocused({ timeout: 30_000 });
   await expect(page.getByText(/양재역 4번출구 → 양재동우체국/)).toBeVisible();
   await expect(page.getByText('과거 기상 재생', { exact: true })).toBeVisible();

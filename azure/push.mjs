@@ -8,8 +8,8 @@ const intervalMs = 600_000;
 const testCooldownMs = 30_000;
 const idPattern = /^[0-9a-f-]{36}$/;
 const message = JSON.stringify({
-  title: '[시연] 자주 다니는 길에 결빙이 예상돼요',
-  body: '과거 기상으로 재현한 알림이에요. 안전 경로를 확인해 보세요.',
+  title: '[시연] 양재 도보 경로에 결빙이 예상돼요',
+  body: '양재역 4번 출구 → 양재동우체국. 눌러서 과거 예보로 계산한 안전 경로를 확인하세요.',
 });
 
 function validSubscription(value) {

@@ -106,7 +106,7 @@ export function PushDemo() {
         }
         setMessage('반복 알림을 껐어요.');
       } else {
-        setMessage('시연 알림을 보냈어요. 잠금화면이나 알림 센터를 확인해 주세요.');
+        setMessage('양재 예시 알림을 보냈어요. 기기 알림을 누르면 양재 시연 경로가 열려요.');
       }
     } catch (error) {
       if (error instanceof PushError && error.status === 404) {
@@ -128,7 +128,7 @@ export function PushDemo() {
     <p className="meta">아이폰은 Safari에서 공유 → 홈 화면에 추가를 선택한 뒤, 추가한 앱에서 알림을 켜 주세요.</p>
     {setup && <div className="button-row">
       {session ? <>
-        <button className="button filled" disabled={busy} onClick={() => void manage('test')}>지금 시험하기</button>
+        <button className="button filled" disabled={busy} onClick={() => void manage('test')}>양재 예시 알림 보내기</button>
         <button className="button outlined" disabled={busy} onClick={() => void manage('disable')}>반복 알림 끄기</button>
       </> : <button className="button filled" disabled={busy} onClick={() => void enable()}>기기 알림 켜기</button>}
     </div>}

@@ -15,7 +15,7 @@ const demoCases = {
   hyehwa: { origin: '혜화역 3번출구', destination: '서울대학교병원 동문' },
   cityHall: { origin: '시청역 5번출구', destination: '서울광장' },
 };
-type Stage = 'home' | 'search' | 'pick' | 'confirm' | 'results';
+type Stage = 'home' | 'notification' | 'search' | 'pick' | 'confirm' | 'results';
 type Field = 'origin' | 'destination';
 const routeErrors: Record<string, string> = {
   OUTSIDE_SEOUL: '서울 안의 장소를 선택해 주세요.',
@@ -28,6 +28,11 @@ const routeErrors: Record<string, string> = {
 function selectedPlace(coordinates: Coordinate, source: 'device' | 'map'): Place {
   return { id: `${source}:${coordinates.join(',')}`, name: source === 'device' ? '현재 위치' : '지도에서 선택한 위치',
     address: '', coordinates, coordinate_source: source };
+}
+
+function isYangjaeNotification(params: URLSearchParams) {
+  const notice = params.get('notice');
+  return notice === 'yangjae-demo' || notice === 'icing-demo';
 }
 
 function RouteResults({ result, onRetry, selected, onSelect }: {
@@ -84,7 +89,8 @@ function RouteResults({ result, onRetry, selected, onSelect }: {
 }
 
 export function App() {
-  const [stage, setStage] = useState<Stage>('home');
+  const [stage, setStage] = useState<Stage>(() =>
+    isYangjaeNotification(new URLSearchParams(window.location.search)) ? 'notification' : 'home');
   const [field, setField] = useState<Field>('destination');
   const [origin, setOrigin] = useState<Place | null>(null);
   const [destination, setDestination] = useState<Place | null>(null);
@@ -110,7 +116,7 @@ export function App() {
   }, []);
   const openNotificationRoute = useEffectEvent(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.get('notice') !== 'icing-demo') return;
+    if (!isYangjaeNotification(url.searchParams)) return;
     url.searchParams.delete('notice');
     window.history.replaceState(window.history.state, '', url);
     void applyDemo('yangjae', true);
@@ -197,7 +203,8 @@ export function App() {
     } catch {
       if (!controller.signal.aborted) {
         setBusy(null);
-        setError('시연 장소를 불러오지 못했어요. 장소를 직접 선택하고 과거 시각을 지정할 수 있어요.');
+        setError(openResults ? '양재 시연 장소를 불러오지 못했어요. 다시 시도해 주세요.'
+          : '시연 장소를 불러오지 못했어요. 장소를 직접 선택하고 과거 시각을 지정할 수 있어요.');
       }
     }
   }
@@ -281,6 +288,11 @@ export function App() {
           </div>
         </details>
       </>}
+      {stage === 'notification' && <section className="panel">
+        <h1 ref={title} tabIndex={-1}>양재 시연 경로</h1>
+        <p>양재역 4번 출구 → 양재동우체국</p>
+        {error && <button className="button filled" onClick={() => void applyDemo('yangjae', true)}>다시 시도</button>}
+      </section>}
       {stage === 'search' && <section className="search-panel panel">
         <h1 ref={title} tabIndex={-1}>{field === 'origin' ? '출발지 선택' : '목적지 선택'}</h1>
         {(origin || destination) && <p className="meta">{origin ? `출발지 · ${origin.name}` : `목적지 · ${destination?.name}`}</p>}

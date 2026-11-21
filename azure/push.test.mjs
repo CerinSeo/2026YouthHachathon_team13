@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, unlink, rmdir } from 'node:fs/promises';
+import { mkdtemp, readFile, unlink, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
 import { test } from 'node:test';
+import { runInNewContext } from 'node:vm';
 import { generateVAPIDKeys } from 'web-push';
 import { createPushHandler } from './push.mjs';
 
@@ -61,7 +62,10 @@ test('a device opts in, receives test and scheduled pushes, and can cancel futur
   assert.equal(sent.length, 0);
 
   assert.equal((await post('test', { id })).status, 200);
-  assert.match(sent[0].title, /^\[시연\]/);
+  assert.deepEqual(sent[0], {
+    title: '[시연] 양재 도보 경로에 결빙이 예상돼요',
+    body: '양재역 4번 출구 → 양재동우체국. 눌러서 과거 예보로 계산한 안전 경로를 확인하세요.',
+  });
   assert.equal((await post('test', { id })).status, 429);
   assert.equal((await post('tick', { id, sequence: 1 })).status, 401);
   time += 599_999;
@@ -85,4 +89,44 @@ test('a device opts in, receives test and scheduled pushes, and can cancel futur
   assert.equal((await post('tick', { id: second.id, sequence: 6 }, job)).status, 200);
   assert.equal(sent.length, 4);
   assert.equal((await post('status', { id: second.id })).status, 404);
+});
+
+test('a notification tap opens the Yangjae link with or without an existing app window', async () => {
+  const script = await readFile(new URL('../public/push-sw.js', import.meta.url), 'utf8');
+  const origin = 'https://bingbingzero.example';
+  const expectedUrl = `${origin}/?notice=yangjae-demo`;
+  const handlers = new Map();
+  const openedUrls = [];
+  let windows = [];
+  runInNewContext(script, {
+    URL,
+    self: {
+      location: { origin },
+      addEventListener: (event, handler) => handlers.set(event, handler),
+      clients: {
+        matchAll: async () => windows,
+        openWindow: async (url) => openedUrls.push(url),
+      },
+    },
+  });
+  async function tap() {
+    let task;
+    let closed = false;
+    handlers.get('notificationclick')({
+      notification: { close: () => { closed = true; } },
+      waitUntil: (promise) => { task = promise; },
+    });
+    await task;
+    assert.equal(closed, true);
+  }
+  await tap();
+  assert.deepEqual(openedUrls, [expectedUrl]);
+  const focused = [];
+  windows = [{
+    url: origin,
+    navigate: async (url) => ({ focus: async () => focused.push(url) }),
+  }];
+  await tap();
+  assert.deepEqual(focused, [expectedUrl]);
+  assert.deepEqual(openedUrls, [expectedUrl]);
 });
