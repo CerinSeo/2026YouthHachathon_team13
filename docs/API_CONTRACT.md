@@ -92,6 +92,12 @@ GET /data/seoul-walk/index.json
 GET /data/seoul-walk/tiles/{tileId}.json
 ```
 
+현재 공급된 v1 스냅샷은 `/data/seoul-walk/{tileId}.json`에 제공한다.
+원본 해시를 유지하기 위해 `index.json`의 `tileFormat`, `bbox`
+([남, 서, 북, 동]), `step`, `osmTimestamp` 및 `tiles` (ID → SHA-256)를
+그대로 유지한다. 타일의 `n/w/b/t`는 노드, way, 건물, 태그 사전의 압축
+표현이다. 아래 논리 스키마는 해독 이후의 책임을 나타낸다.
+
 `index.json` 최소 필드:
 
 ```json

@@ -89,6 +89,12 @@ tests/
 
 ## 5. 서울 보행망 사전 빌드
 
+이 저장소에는 해커톤용으로 제공된 Geofabrik 파생 타일 108개가 들어 있다.
+`scripts/build-seoul-walk.py`는 원본 PBF를 다시 내려받는 대신 제공본의 범위,
+출처와 SHA-256을 검증해 배치한다. 앱은 v1 압축 파일을 직접 해독한다.
+인덱스의 사각형은 타일 조회 범위이며, 입력이 서울에 속하는지는 같은 데이터
+폴더에 있는 OpenStreetMap 행정 경계로 검증한다.
+
 ### 5.1 입력과 범위
 
 - 입력: Geofabrik `south-korea-latest.osm.pbf`

@@ -11,6 +11,10 @@ distributed index. The original extract provider is
 The distributed tiles can be downloaded individually from the application
 using that index.
 
+The Seoul administrative boundary is derived from
+[OpenStreetMap relation 2297418](https://www.openstreetmap.org/relation/2297418)
+and distributed under the same ODbL 1.0 terms.
+
 Background map tiles are used under the
 [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
 Place search and weather are fetched from their providers at runtime.
