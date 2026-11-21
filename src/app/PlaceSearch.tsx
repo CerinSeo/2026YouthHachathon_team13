@@ -8,9 +8,11 @@ interface Props {
   onSelect: (place: Place) => void;
   onLocate?: () => void;
   onPick: () => void;
+  originLabel?: string;
+  onEditOrigin?: () => void;
 }
 
-export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
+export function PlaceSearch({ field, onSelect, onLocate, onPick, originLabel, onEditOrigin }: Props) {
   const name = field === 'origin' ? '출발지' : '목적지';
   const [query, setQuery] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
@@ -47,9 +49,10 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
 
   return <>
     <form onSubmit={submit} role="search" className="place-search">
-      <label htmlFor="place-query">{name} 검색</label>
+      <label className="sr-only" htmlFor="place-query">{name} 검색</label>
       <div className="search-field">
         <div className="search-entry">
+          <span className="search-glyph" aria-hidden="true" />
           <input ref={input} id="place-query" type="search" placeholder="장소 이름 또는 주소" value={query} maxLength={80}
             onChange={(event) => changeQuery(event.target.value)} />
           {query && <button type="button" className="button icon" aria-label="검색어 지우기"
@@ -58,7 +61,10 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
         <button className="button filled" type="submit" disabled={!query.trim()}>검색</button>
       </div>
     </form>
-    <div className="button-row">
+    <div className="search-shortcuts">
+      {onEditOrigin && <button className="origin-shortcut" type="button" onClick={onEditOrigin}>
+        <span className="location-glyph" aria-hidden="true" /><span>출발지 · {originLabel ?? '선택해 주세요'}</span>
+      </button>}
       {onLocate && <button className="button outlined" onClick={onLocate}>현재 위치 쓰기</button>}
       <button className="button outlined" onClick={onPick}>지도에서 선택</button>
     </div>
@@ -75,6 +81,7 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
         <button onClick={() => onSelect(place)}>
           <span className="list-mark" aria-hidden="true">⌖</span>
           <span><strong>{place.name}</strong>{place.address && <small>{place.address}</small>}</span>
+          <span aria-hidden="true" className="place-select">선택</span>
         </button>
       </li>)}
     </ul>}

@@ -4,7 +4,7 @@ import { compareRoutes, routeMetadata } from '../core/routing';
 import { inCity } from '../core/geo';
 import { PlaceSearch } from './PlaceSearch';
 import { PushDemo } from './PushDemo';
-import { RouteGuidance } from './RouteGuidance';
+import { RouteGuidance, type GuidanceMode } from './RouteGuidance';
 import { currentHour, dateTimeFromKst, distanceLabel, duration, formatKst, hourMs, localInput, weatherMode } from './time';
 import { searchPlaces } from '../services/api';
 
@@ -35,56 +35,64 @@ function isYangjaeNotification(params: URLSearchParams) {
   return notice === 'yangjae-demo' || notice === 'icing-demo';
 }
 
-function RouteResults({ result, onRetry, selected, onSelect }: {
+function RouteResults({ result, onRetry, selected, onSelect, guidanceMode, onModeChange, onPositionChange, instructionPortal, destination }: {
   result: RouteComparison; onRetry: () => void; selected: 'safe' | 'normal'; onSelect: (route: 'safe' | 'normal') => void;
+  guidanceMode: GuidanceMode; onModeChange: (mode: GuidanceMode) => void; onPositionChange: (point: Coordinate | null) => void;
+  instructionPortal: HTMLElement | null; destination: string;
 }) {
   const { baseline, recommendation } = result;
   const [more, setMore] = useState(false);
   const details = selected === 'safe' ? recommendation.route : baseline;
   const riskCount = new Set(result.riskSegments.map((segment) => segment.edgeId)).size;
+  const extra = recommendation.additionalSeconds;
   return <section id="route-summary" tabIndex={-1} className="result-sheet" aria-label="경로 요약">
-    {result.mode === 'historical_replay' && <span className="chip">과거 기상 재생</span>}
-    <p className="meta">{result.dataAsOf ? <>기상 기준 {formatKst(result.dataAsOf)} · <a href="https://open-meteo.com/">Open-Meteo</a></>
-      : `선택 시각 ${formatKst(result.selectedAt)}`}</p>
-    {recommendation.status === 'not_evaluated' && <div className="notice warning" role="status">
-      <strong>{result.reason === 'weather_failed' ? '기상 정보를 불러오지 못했어요' : '위험 정보를 계산할 자료가 부족해요'}</strong>
-      <p>지금은 일반 경로만 볼 수 있어요.</p>
-      <button className="button outlined" onClick={onRetry}>다시 시도</button>
-    </div>}
-    {recommendation.status === 'unavailable' && <div className="notice warning" role="status">
-      <strong>안전 경로를 찾지 못했어요</strong>
-      <p>회피 대상 구간을 빼면 이어지는 도보 경로가 없어요. 출발지나 목적지를 바꿔 보세요.</p>
-    </div>}
-    <fieldset className="route-choices">
-      <legend>지도에서 볼 경로</legend>
-      {recommendation.route && <label className="route-option route-option--safe">
-        <input type="radio" name="route" checked={selected === 'safe'} onChange={() => onSelect('safe')} />
-        <span><span className="legend-line solid" aria-hidden="true" />안전 경로</span>
-        <strong>{duration(recommendation.route.durationSeconds)}</strong>
-        <small>{distanceLabel(recommendation.route.distanceM)}{recommendation.additionalSeconds > 0
-          ? ` · ${duration(recommendation.additionalSeconds)} 추가` : ' · 추가 시간 없음'}</small>
-      </label>}
-      <label className="route-option">
-        <input type="radio" name="route" checked={selected === 'normal'} onChange={() => onSelect('normal')} />
-        <span><span className="legend-line dashed" aria-hidden="true" />일반 경로</span>
-        <strong>{duration(baseline.durationSeconds)}</strong>
-        <small>{distanceLabel(baseline.distanceM)}</small>
-      </label>
-    </fieldset>
-    {recommendation.status === 'same_as_baseline' && <p>두 경로가 같아요.</p>}
-    {result.dataAsOf && <p className="risk-summary"><span aria-hidden="true">❄</span>
-      {riskCount ? `일반 경로의 결빙 위험 예상구간 ${riskCount}곳` : '일반 경로에서 확인된 결빙 위험 예상구간이 없어요.'}</p>}
-    {recommendation.route && <p className="meta">결빙 위험 예상구간을 고려한 경로예요. 실제 노면 상태에 따라 통행 위험이 달라질 수 있어요.</p>}
+    <div className="comparison" hidden={guidanceMode !== 'idle'}>
+      {result.mode === 'historical_replay' && <span className="chip">과거 기상 재생</span>}
+      <p className="meta">{result.dataAsOf ? <>기상 기준 {formatKst(result.dataAsOf)} · <a href="https://open-meteo.com/">Open-Meteo</a></>
+        : `선택 시각 ${formatKst(result.selectedAt)}`}</p>
+      {recommendation.status === 'not_evaluated' && <div className="notice warning" role="status">
+        <strong>{result.reason === 'weather_failed' ? '기상 정보를 불러오지 못했어요' : '위험 정보를 계산할 자료가 부족해요'}</strong>
+        <p>지금은 일반 경로만 볼 수 있어요.</p>
+        <button className="button outlined" onClick={onRetry}>다시 시도</button>
+      </div>}
+      {recommendation.status === 'unavailable' && <div className="notice warning" role="status">
+        <strong>안전 경로를 찾지 못했어요</strong>
+        <p>회피 대상 구간을 빼면 이어지는 도보 경로가 없어요. 출발지나 목적지를 바꿔 보세요.</p>
+      </div>}
+      <fieldset className="route-choices">
+        <legend className="sr-only">지도에서 볼 경로</legend>
+        {recommendation.route && <label className="route-option route-option--safe">
+          <input type="radio" name="route" checked={selected === 'safe'} onChange={() => onSelect('safe')} />
+          <span><span className="legend-line solid" aria-hidden="true" />안전 경로</span>
+          <strong>{duration(recommendation.route.durationSeconds)}</strong>
+          <small>{distanceLabel(recommendation.route.distanceM)}</small>
+        </label>}
+        <label className="route-option">
+          <input type="radio" name="route" checked={selected === 'normal'} onChange={() => onSelect('normal')} />
+          <span><span className="legend-line dashed" aria-hidden="true" />일반 경로</span>
+          <strong>{duration(baseline.durationSeconds)}</strong>
+          <small>{distanceLabel(baseline.distanceM)}</small>
+        </label>
+      </fieldset>
+      {extra !== null && <p className="time-difference">{extra > 0 ? `일반 경로보다 ${duration(extra)} 더 걸려요`
+        : recommendation.status === 'same_as_baseline' ? '두 경로가 같아요.' : '추가 소요시간이 없어요.'}</p>}
+      {result.dataAsOf && <p className="risk-summary"><span aria-hidden="true">❄</span>
+        {riskCount ? `일반 경로의 결빙 위험 예상구간 ${riskCount}곳` : '일반 경로에서 확인된 결빙 위험 예상구간이 없어요.'}</p>}
+    </div>
     {details && <RouteGuidance key={selected} route={details} risks={result.riskSegments}
-      live={result.mode === 'current' && Date.parse(result.selectedAt) === currentHour()} />}
-    {details && <button className="button outlined" aria-expanded={more} aria-controls="route-details"
-      onClick={() => setMore(!more)}>{more ? '경로 상세 접기' : '경로 자세히 보기'}</button>}
-    {more && details && <div id="route-details" className="route-details">
-      <h3>{selected === 'safe' ? '안전 경로 상세' : '일반 경로 상세'}</h3>
-      <p>거리 {distanceLabel(details.distanceM)} · 예상 소요시간 {duration(details.durationSeconds)}</p>
-      <p>위험 예상은 기상·환경 자료의 추정 결과예요. 지도 자료에 계단이나 경사가 기록되지 않은 구간이 있을 수 있어요.</p>
-      <p className="meta">보행망 기준 {formatKst(result.networkAsOf)} · OpenStreetMap</p>
-    </div>}
+      live={result.mode === 'current' && Date.parse(result.selectedAt) === currentHour()}
+      instructionPortal={instructionPortal} destination={destination} onModeChange={onModeChange} onPositionChange={onPositionChange} />}
+    <div className="comparison-details" hidden={guidanceMode !== 'idle'}>
+      {recommendation.route && <p className="meta">결빙 위험을 고려한 경로예요. 실제 노면 상태와 다를 수 있어요.</p>}
+      {details && <button className="button outlined" aria-expanded={more} aria-controls="route-details"
+        onClick={() => setMore(!more)}>{more ? '경로 상세 접기' : '경로 자세히 보기'}</button>}
+      {more && details && <div id="route-details" className="route-details">
+        <h3>{selected === 'safe' ? '안전 경로 상세' : '일반 경로 상세'}</h3>
+        <p>거리 {distanceLabel(details.distanceM)} · 예상 소요시간 {duration(details.durationSeconds)}</p>
+        <p>위험 예상은 기상·환경 자료의 추정 결과예요. 지도 자료에 계단이나 경사가 기록되지 않은 구간이 있을 수 있어요.</p>
+        <p className="meta">보행망 기준 {formatKst(result.networkAsOf)} · OpenStreetMap</p>
+      </div>}
+    </div>
   </section>;
 }
 
@@ -104,6 +112,9 @@ export function App() {
   const [busy, setBusy] = useState<'route' | 'demo' | 'locate' | null>(null);
   const [result, setResult] = useState<RouteComparison | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<'safe' | 'normal'>('safe');
+  const [guidanceMode, setGuidanceMode] = useState<GuidanceMode>('idle');
+  const [guidePosition, setGuidePosition] = useState<Coordinate | null>(null);
+  const [instructionPortal, setInstructionPortal] = useState<HTMLDivElement | null>(null);
   const active = useRef<AbortController>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const homeSearchButton = useRef<HTMLButtonElement>(null);
@@ -112,6 +123,7 @@ export function App() {
   const menuTitle = useRef<HTMLHeadingElement>(null);
   const previousStage = useRef(stage);
   const version = useRef(0);
+  const searchBack = useRef<'home' | 'confirm'>('home');
   useEffect(() => {
     if (previousStage.current === stage) return;
     previousStage.current = stage;
@@ -139,9 +151,12 @@ export function App() {
     version.current++;
     setBusy(null);
     setError('');
+    setGuidanceMode('idle');
+    setGuidePosition(null);
     setStage(next);
   }
   function edit(next: Field) {
+    if (stage === 'home' || stage === 'confirm') searchBack.current = stage;
     setField(next);
     setDraftPoint(null);
     go('search');
@@ -261,11 +276,22 @@ export function App() {
   }
 
   function startSearch() {
-    setOrigin(null);
+    setOrigin(mapLocation ? selectedPlace(mapLocation, 'device') : null);
     setDestination(null);
     setDemo(false);
     setInputTime(localInput(currentHour()));
     edit('destination');
+  }
+
+  function useHomeLocation() {
+    locate((point) => {
+      const started = version.current;
+      void routeMetadata().then(({ boundary }) => {
+        if (started !== version.current) return;
+        if (inCity(point, boundary)) setMapLocation(point);
+        else setError('서울 안에서 현재 위치로 출발하거나 출발지를 직접 선택해 주세요.');
+      }).catch(() => { if (started === version.current) setError(routeErrors.MAP_DATA_UNAVAILABLE); });
+    });
   }
 
   function openMenu() {
@@ -275,6 +301,7 @@ export function App() {
   }
 
   const mapLoading = <p role="status" className="map-loading">지도를 불러오고 있어요…</p>;
+  const backButton = (to: Stage) => <button type="button" className="button icon back" aria-label="이전 화면" onClick={() => go(to)}>‹</button>;
   const message = <>
     {busy && <p role="status" className="notice progress">
       {busy === 'route' ? '실제 기상과 보행로를 확인하고 있어요…' : busy === 'demo' ? '시연 장소를 찾고 있어요…' : '현재 위치를 확인하고 있어요…'}
@@ -284,16 +311,10 @@ export function App() {
 
   return <>
     <a className="skip-link" href="#content">본문으로 건너뛰기</a>
-    <header className="topbar">
-      <div className="topbar-inner">
-        {stage !== 'home' && <button className="button icon back" aria-label="이전 화면"
-          onClick={() => go(stage === 'pick' ? 'search' : stage === 'results' ? 'confirm' : stage === 'search' && (origin || destination) ? 'confirm' : 'home')}>‹</button>}
+    {(stage === 'pick' || stage === 'notification') && <header className="topbar">
+      <div className="topbar-inner">{backButton(stage === 'pick' ? 'search' : 'home')}
         <button className="wordmark" onClick={() => go('home')} aria-label="빙빙제로 홈"><span aria-hidden="true">❄</span>빙빙제로</button>
-        {stage === 'home' && <button type="button" ref={menuButton} className="button icon menu-button"
-          aria-label="메뉴" aria-haspopup="dialog" aria-controls="app-menu" aria-expanded={menuOpen}
-          onClick={openMenu}><span className="menu-glyph" aria-hidden="true" /></button>}
-      </div>
-    </header>
+      </div></header>}
     <dialog ref={menuDialog} id="app-menu" className="app-menu" aria-labelledby="app-menu-title"
       onClose={() => { setMenuOpen(false); menuButton.current?.focus(); }}>
       <header className="menu-heading">
@@ -316,33 +337,52 @@ export function App() {
       </>}
     </dialog>
     <main id="content" tabIndex={-1}
-      className={stage === 'home' ? 'main home' : stage === 'confirm' || stage === 'results' ? 'main main--route' : 'main'}>
+      className={stage === 'home' ? 'main home' : stage === 'search' ? 'main main--search'
+        : stage === 'confirm' || stage === 'results' ? 'main main--route' : 'main'}>
       {stage === 'home' && <section className="home-map" aria-labelledby="home-title">
-        <div className="home-search">
+        <header className="home-search">
           <h1 id="home-title" className="sr-only">서울 도보 길찾기</h1>
-          <button ref={homeSearchButton} className="map-search-button" onClick={startSearch}>
-            <span className="search-glyph" aria-hidden="true" />목적지 검색하기
+          <button ref={homeSearchButton} className="map-search-button" onClick={startSearch}
+            aria-label="빙빙제로, 어디로 가세요? 목적지 검색하기">
+            <span className="search-glyph" aria-hidden="true" /><strong>빙빙제로</strong><span>어디로 가세요?</span>
           </button>
-          {message}
-        </div>
+          <button type="button" ref={menuButton} className="button icon menu-button"
+            aria-label="메뉴" aria-haspopup="dialog" aria-controls="app-menu" aria-expanded={menuOpen}
+            onClick={openMenu}><span className="menu-glyph" aria-hidden="true" /></button>
+        </header>
         <div className="home-map-layer">
           <Suspense fallback={mapLoading}>
             <MapView origin={null} destination={null} location={mapLocation}
-              onLocate={() => locate(setMapLocation)} locating={busy === 'locate'} />
+              onLocate={useHomeLocation} locating={busy === 'locate'} />
           </Suspense>
         </div>
+        <section className="home-sheet" aria-label="도보 길찾기">
+          <button type="button" className="location-action" disabled={busy === 'locate'} onClick={useHomeLocation}>
+            <span className="location-glyph" aria-hidden="true" />{mapLocation ? '출발지 · 현재 위치' : '현재 위치에서 출발하기'}
+          </button>
+          <button type="button" className="destination-action" onClick={startSearch}>
+            <span className="search-glyph" aria-hidden="true" /><span>목적지를 검색해 주세요</span><span aria-hidden="true">›</span>
+          </button>
+          {message}
+        </section>
       </section>}
       {stage === 'notification' && <section className="panel">
         <h1 ref={title} tabIndex={-1}>양재 시연 경로</h1>
         <p>양재역 4번 출구 → 양재동우체국</p>
         {error && <button className="button filled" onClick={() => void applyDemo('yangjae', true)}>다시 시도</button>}
       </section>}
-      {stage === 'search' && <section className="search-panel panel">
-        <h1 ref={title} tabIndex={-1}>{field === 'origin' ? '출발지 선택' : '목적지 선택'}</h1>
-        {(origin || destination) && <p className="meta">{origin ? `출발지 · ${origin.name}` : `목적지 · ${destination?.name}`}</p>}
-        <PlaceSearch key={field} field={field} onSelect={(place) => void choose(place)}
-          onLocate={field === 'origin' ? () => locate((point) => void choose(selectedPlace(point, 'device'))) : undefined}
-          onPick={() => { setDraftPoint(null); go('pick'); }} />
+      {stage === 'search' && <section className="search-screen">
+        <div className="search-panel">
+          <div className="search-header">{backButton(searchBack.current)}
+            <h1 ref={title} tabIndex={-1}>{field === 'origin' ? '출발지 선택' : '목적지 선택'}</h1>
+          </div>
+          <PlaceSearch key={field} field={field} onSelect={(place) => void choose(place)}
+            originLabel={origin?.name} onEditOrigin={field === 'destination' ? () => edit('origin') : undefined}
+            onLocate={field === 'origin' ? () => locate((point) => void choose(selectedPlace(point, 'device'))) : undefined}
+            onPick={() => { setDraftPoint(null); go('pick'); }} />
+          {message}
+        </div>
+        <Suspense fallback={mapLoading}><MapView origin={origin} destination={destination} /></Suspense>
       </section>}
       {stage === 'pick' && <section>
         <h1 ref={title} tabIndex={-1}>지도에서 {field === 'origin' ? '출발지' : '목적지'} 선택</h1>
@@ -358,48 +398,63 @@ export function App() {
         </div>
       </section>}
       {stage === 'confirm' && <section className="route-screen">
-        <header className="route-header"><h1 ref={title} tabIndex={-1}>경로 확인</h1></header>
+        <header className="trip-bar">
+          {backButton('home')}
+          <div><h1 ref={title} tabIndex={-1}>경로 확인</h1><p>{destination?.name ?? '목적지를 선택해 주세요'}</p></div>
+          {destination && <button className="button outlined" onClick={() => { setDemo(false); edit('destination'); }}>목적지 변경</button>}
+        </header>
         <div className="workspace">
           <Suspense fallback={mapLoading}>
             <MapView origin={origin} destination={destination} />
           </Suspense>
           <div className="panel confirm-panel">
-            {([['origin', '출발지', origin], ['destination', '목적지', destination]] as const).map(([id, caption, place]) =>
-              <div key={id} className="confirm-row">
-                <div><span className="meta">{caption}</span><strong>{place?.name ?? '선택해 주세요'}</strong>
-                  {place?.address && <small>{place.address}</small>}</div>
-                <button className="button outlined" onClick={() => { setDemo(false); edit(id); }}>{caption} {place ? '변경' : '선택'}</button>
-              </div>)}
-            <label className="time-field">기상 적용 시각 (한국 시간)
-              <input type="datetime-local" value={inputTime} step="3600" min="2022-01-02T00:00"
-                max={localInput(now + 24 * hourMs)} onChange={(event) => { setDemo(false); setInputTime(event.target.value); }} />
-            </label>
-            <p className="meta">현재부터 24시간 뒤까지의 예보 또는 과거 기상을 정각으로 선택할 수 있어요.</p>
+            <div className="destination-summary">
+              <h2>{destination?.name ?? '목적지를 선택해 주세요'}</h2>
+              {destination?.address && <p>{destination.address}</p>}
+            </div>
+            <div className="confirm-row">
+              <div><span className="meta">출발지</span><strong>{origin?.name ?? '선택해 주세요'}</strong>
+                {origin?.address && <small>{origin.address}</small>}</div>
+              <button className="button outlined" onClick={() => { setDemo(false); edit('origin'); }}>출발지 {origin ? '변경' : '선택'}</button>
+            </div>
             <div className="button-row">
               <button className="button filled" disabled={busy === 'route'} onClick={() => void calculate()}>
-                {origin && destination ? '이 경로 비교하기' : origin ? '목적지 선택하기' : '출발지 선택하기'}
+                {origin && !destination ? '목적지 선택하기' : '여기로 길찾기'}
               </button>
               {busy === 'route' && <button className="button outlined" onClick={cancel}>계산 취소</button>}
             </div>
             {message}
+            <details className="time-options">
+              <summary>기상 시각 · {formatKst(dateTimeFromKst(inputTime) || currentHour())}</summary>
+              <label className="time-field">기상 적용 시각 (한국 시간)
+                <input type="datetime-local" value={inputTime} step="3600" min="2022-01-02T00:00"
+                  max={localInput(now + 24 * hourMs)} onChange={(event) => { setDemo(false); setInputTime(event.target.value); }} />
+              </label>
+              <p className="meta">현재부터 24시간 뒤까지의 예보 또는 과거 정각을 선택할 수 있어요.</p>
+            </details>
           </div>
         </div>
       </section>}
-      {stage === 'results' && result && <section className="route-screen route-screen--results">
-        <header className="route-header result-heading">
+      {stage === 'results' && result && <section className={guidanceMode === 'idle' ? 'route-screen route-screen--results' : 'route-screen route-screen--guidance'}>
+        <header className="trip-bar result-heading" hidden={guidanceMode !== 'idle'}>
+          {backButton('confirm')}
           <div><h1 ref={title} tabIndex={-1}>경로 결과</h1><p>{origin?.name} → {destination?.name}</p></div>
           <button className="button outlined" onClick={() => go('confirm')}>입력 수정</button>
         </header>
+        <div className="guidance-top" ref={setInstructionPortal} />
         <div className="workspace">
           <a className="skip-link skip-link--map" href="#route-summary">경로 요약으로 건너뛰기</a>
           <Suspense fallback={mapLoading}>
-            <MapView origin={origin} destination={destination} result={result} selected={selectedRoute} />
+            <MapView origin={origin} destination={destination} result={result} selected={selectedRoute}
+              location={guidanceMode === 'tracking' || guidanceMode === 'arrived' ? guidePosition : null} />
           </Suspense>
           <RouteResults key={result.selectedAt + result.recommendation.status}
-            result={result} selected={selectedRoute} onSelect={setSelectedRoute} onRetry={() => void calculate()} />
+            result={result} selected={selectedRoute} onSelect={setSelectedRoute} onRetry={() => void calculate()}
+            instructionPortal={instructionPortal} destination={destination?.name ?? '목적지'}
+            guidanceMode={guidanceMode} onModeChange={setGuidanceMode} onPositionChange={setGuidePosition} />
         </div>
       </section>}
-      {stage !== 'home' && stage !== 'confirm' && message}
+      {stage !== 'home' && stage !== 'confirm' && stage !== 'search' && message}
     </main>
   </>;
 }

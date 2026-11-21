@@ -19,7 +19,7 @@ test('mobile map, menu, and search stay usable with enlarged text', async ({ pag
   await expect(page.getByText('시연 경로', { exact: true })).toHaveCount(0);
   await expect(page.getByText('잠금화면 결빙 알림 시연', { exact: true })).toHaveCount(0);
   for (const name of ['메뉴', '목적지 검색하기', '지도에서 현재 위치 보기', '지도 확대', '지도 축소']) {
-    const bounds = await page.getByRole('button', { name, exact: true }).boundingBox();
+    const bounds = await page.getByRole('button', { name }).boundingBox();
     expect(bounds!.width).toBeGreaterThanOrEqual(48);
     expect(bounds!.height).toBeGreaterThanOrEqual(48);
   }
@@ -50,9 +50,11 @@ test('mobile map, menu, and search stay usable with enlarged text', async ({ pag
   await expect(page.getByRole('searchbox')).toBeFocused();
 });
 
-test('people can search real places and compare a route from the map home', async ({ page }) => {
+test('people can search real places, compare a route, and open live guidance from the map home', async ({ page, context }) => {
   test.skip(process.env.LIVE_DEMO_TEST !== '1', 'Requires local TMAP key and upstream connections');
   await page.setViewportSize({ width: 390, height: 844 });
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: 37.483592, longitude: 127.036065, accuracy: 8 });
   await page.goto('/');
   await page.getByRole('button', { name: '목적지 검색하기' }).click();
   await page.getByRole('searchbox', { name: '목적지 검색' }).fill('양재동우체국');
@@ -62,10 +64,15 @@ test('people can search real places and compare a route from the map home', asyn
   await page.getByRole('searchbox', { name: '출발지 검색' }).fill('양재역 4번출구');
   await page.getByRole('button', { name: '검색', exact: true }).click();
   await page.getByRole('list', { name: '검색 결과' }).getByRole('button', { name: /^양재역 4번출구/ }).first().click();
-  await page.getByRole('button', { name: '이 경로 비교하기' }).click();
+  await page.getByRole('button', { name: '여기로 길찾기' }).click();
   await expect(page.getByRole('heading', { name: '경로 결과' })).toBeFocused({ timeout: 30_000 });
   await expect(page.getByRole('radio', { name: /일반 경로/ })).toBeVisible();
   await expect(page.getByText('과거 기상 재생', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '안내 시작' }).click();
+  await expect(page.locator('.guidance-top').getByRole('heading', { name: '도보 안내' })).toBeFocused();
+  await expect(page.getByRole('heading', { name: '양재동우체국까지' })).toBeVisible();
+  await page.getByRole('button', { name: '안내 종료' }).click();
+  await expect(page.getByRole('button', { name: '안내 시작' })).toBeFocused();
 });
 
 test('a background push registers a system notification through the service worker', async ({ page, context }) => {
@@ -140,7 +147,7 @@ test('live historical demo renders a traceable walking comparison', async ({ pag
   await page.goto('/');
   await openDemo(page, '양재 시연 열기');
   await expect(page.getByRole('heading', { name: '경로 확인' })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: '이 경로 비교하기' }).click();
+  await page.getByRole('button', { name: '여기로 길찾기' }).click();
   await expect(page.getByRole('heading', { name: '경로 결과' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('과거 기상 재생', { exact: true })).toBeVisible();
   await expect(page.getByText(/기상 기준/)).toBeVisible();
@@ -151,6 +158,7 @@ test('live historical demo renders a traceable walking comparison', async ({ pag
   await expect(page.getByText(/강수량|결빙 점수|임계값/)).toHaveCount(0);
   await page.getByRole('button', { name: '경로 단계 보기' }).click();
   await expect(page.getByRole('heading', { name: '경로 단계' })).toBeFocused();
+  await expect(page.locator('.guidance-top').getByRole('button', { name: '다시 듣기' })).toBeVisible();
   await page.getByRole('button', { name: '다시 듣기' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-spoken', /^ko-KR .+/);
   await expect(page.locator('html')).toHaveAttribute('data-vibration', /^\[|^180$/);
@@ -164,7 +172,7 @@ for (const name of ['혜화역에서 병원까지', '시청역에서 서울광�
     await page.goto('/');
     await openDemo(page, name);
     await expect(page.getByRole('heading', { name: '경로 확인' })).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('button', { name: '이 경로 비교하기' }).click();
+    await page.getByRole('button', { name: '여기로 길찾기' }).click();
     await expect(page.getByRole('radio', { name: /일반 경로/ })).toBeVisible();
     await expect(page.getByText('과거 기상 재생', { exact: true })).toBeVisible();
   });
@@ -183,7 +191,7 @@ test('preserves the ordinary route when the weather provider is unavailable', as
   await page.goto('/');
   await openDemo(page, '양재 시연 열기');
   await expect(page.getByRole('heading', { name: '경로 확인' })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: '이 경로 비교하기' }).click();
+  await page.getByRole('button', { name: '여기로 길찾기' }).click();
   await expect(page.getByText('지금은 일반 경로만 볼 수 있어요.')).toBeVisible();
   await expect(page.getByRole('radio', { name: /안전 경로/ })).toHaveCount(0);
   await expect(page.getByRole('radio', { name: /일반 경로/ })).toBeVisible();

@@ -58,13 +58,15 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
 
   useEffect(() => {
     const instance = map.current;
-    if (!instance || !location) return;
+    if (!instance) return;
     locationMarker.current?.remove();
+    locationMarker.current = null;
+    if (!location) return;
     const position = latLng(location);
     locationMarker.current = L.circleMarker(position, {
-      radius: 8, color: '#FFFFFF', weight: 3, fillColor: '#0B5FCC', fillOpacity: 1, interactive: false,
+      radius: 9, color: '#FFFFFF', weight: 4, fillColor: '#1F83FF', fillOpacity: 1, interactive: false,
     }).addTo(instance);
-    instance.setView(position, 16, { animate: false });
+    instance.setView(position, Math.max(instance.getZoom(), 16), { animate: false });
   }, [location]);
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
     if (result) {
       const normal = () => drawRoute(result.baseline.coordinates, '일반 경로', '#65778A', selected === 'normal' ? 6 : 4, '8 7');
       const safe = () => {
-        if (result.recommendation.route) drawRoute(result.recommendation.route.coordinates, '안전 경로', '#0B5FCC', selected === 'safe' ? 8 : 6);
+        if (result.recommendation.route) drawRoute(result.recommendation.route.coordinates, '안전 경로', '#1F83FF', selected === 'safe' ? 8 : 6);
       };
       if (result.recommendation.status === 'same_as_baseline') {
         if (selected === 'normal') normal();
