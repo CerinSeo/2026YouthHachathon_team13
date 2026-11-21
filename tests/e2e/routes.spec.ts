@@ -13,6 +13,53 @@ test('mobile home and search keep controls visible with enlarged text', async ({
   await expect(page.getByRole('button', { name: '지도에서 선택' })).toBeVisible();
 });
 
+test('the mock icing alert previews immediately and repeats every ten minutes when enabled', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.clock.install({ time: new Date('2026-11-21T09:59:00+09:00') });
+  await page.clock.pauseAt(new Date('2026-11-21T10:00:00+09:00'));
+  await page.goto('/');
+  const notice = page.locator('.notification-demo');
+  await expect(notice).toHaveCount(0);
+  await page.clock.runFor(10 * 60_000);
+  await expect(notice).toHaveCount(0);
+  await page.getByRole('button', { name: '지금 시험하기' }).click();
+  await expect(notice).toBeInViewport();
+  await expect(notice.getByRole('status')).toContainText('과거 기상으로 재현한 알림이에요.');
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+  await expect(notice.getByRole('button', { name: '안전 경로 확인' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+  await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+  await notice.getByRole('button', { name: '시연 알림 닫기' }).click();
+  await expect(page.getByRole('button', { name: '지금 시험하기' })).toBeFocused();
+
+  await page.getByRole('button', { name: '10분 알림 켜기' }).click();
+  await page.clock.runFor(599_999);
+  await expect(notice).toHaveCount(0);
+  await page.clock.runFor(1);
+  await expect(notice.getByRole('status')).toContainText('10:20');
+  await notice.getByRole('button', { name: '시연 알림 닫기' }).click();
+  await page.clock.runFor(600_000);
+  await expect(notice.getByRole('status')).toContainText('10:30');
+  await page.getByRole('button', { name: '10분 알림 끄기' }).click();
+  await expect(notice).toHaveCount(0);
+  await page.clock.runFor(600_000);
+  await expect(notice).toHaveCount(0);
+});
+
+test('the mock icing alert opens the real Yangjae historical comparison in one tap', async ({ page }) => {
+  test.skip(process.env.LIVE_DEMO_TEST !== '1', 'Requires local TMAP key and upstream connections');
+  await page.goto('/');
+  await page.getByRole('button', { name: '지금 시험하기' }).click();
+  await page.getByRole('button', { name: '안전 경로 확인' }).click();
+  await expect(page.getByRole('heading', { name: '경로 결과' })).toBeFocused({ timeout: 30_000 });
+  await expect(page.getByText(/양재역 4번출구 → 양재동우체국/)).toBeVisible();
+  await expect(page.getByText('과거 기상 재생', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open-Meteo' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /안전 경로/ })).toBeChecked();
+  await expect(page.getByText(/결빙 위험 예상구간 [1-9]/)).toBeVisible();
+  await expect(page.locator('.notification-demo')).toHaveCount(0);
+});
+
 test('live historical demo renders a traceable walking comparison', async ({ page }) => {
   test.skip(process.env.LIVE_DEMO_TEST !== '1', 'Requires local TMAP key and upstream connections');
   await page.addInitScript(() => {

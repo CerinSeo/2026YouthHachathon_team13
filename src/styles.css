@@ -79,6 +79,10 @@ p, h1, h2, small, strong { overflow-wrap: anywhere; }
   border-radius: 50%; background: var(--primary-container); color: var(--primary); font-size: 1.45rem; }
 
 .panel, .result-sheet { background: var(--white); border: 1px solid var(--divider); border-radius: 1.25rem; padding: 1.25rem; min-width: 0; }
+.notification-settings { margin-top: 1rem; }
+.notification-demo { position: sticky; bottom: .5rem; z-index: 2; max-width: 32rem; margin: 1rem 0 0 auto;
+  border-color: var(--primary); box-shadow: 0 4px 16px #102A5626; }
+.notification-demo h2 { font-size: 1.25rem; }
 .search-panel { max-width: 44rem; margin: auto; }
 .place-search > label, .time-field { display: grid; gap: .4rem; font-weight: 700; margin-bottom: .45rem; }
 .search-field { display: flex; flex-wrap: wrap; gap: .5rem; }
