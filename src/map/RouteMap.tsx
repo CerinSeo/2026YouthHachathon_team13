@@ -8,6 +8,9 @@ interface Props {
   destination: Place | null;
   result?: RouteComparison | null;
   onPick?: (coordinates: Coordinate) => void;
+  location?: Coordinate | null;
+  onLocate?: () => void;
+  locating?: boolean;
   selected?: 'safe' | 'normal';
 }
 
@@ -25,17 +28,18 @@ function label(text: string) {
   return element;
 }
 
-export function RouteMap({ origin, destination, result, onPick, selected = 'safe' }: Props) {
+export function RouteMap({ origin, destination, result, onPick, location, onLocate, locating, selected = 'safe' }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
+  const locationMarker = useRef<L.CircleMarker | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
   const pickRef = useRef(onPick);
   useEffect(() => { pickRef.current = onPick; }, [onPick]);
 
   useEffect(() => {
     if (!container.current) return;
-    const instance = L.map(container.current, { scrollWheelZoom: false, zoomControl: false }).setView([37.55, 126.99], 12);
+    const instance = L.map(container.current, { scrollWheelZoom: false, zoomControl: false }).setView([37.5665, 126.978], 12);
     instance.attributionControl.setPrefix(false);
     const tiles = L.tileLayer(tileUrl, {
       maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors (ODbL)</a>',
@@ -49,8 +53,19 @@ export function RouteMap({ origin, destination, result, onPick, selected = 'safe
     map.current = instance;
     const resize = new ResizeObserver(() => instance.invalidateSize());
     resize.observe(container.current);
-    return () => { resize.disconnect(); instance.remove(); map.current = null; layer.current = null; };
+    return () => { resize.disconnect(); instance.remove(); map.current = null; layer.current = null; locationMarker.current = null; };
   }, []);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || !location) return;
+    locationMarker.current?.remove();
+    const position = latLng(location);
+    locationMarker.current = L.circleMarker(position, {
+      radius: 8, color: '#FFFFFF', weight: 3, fillColor: '#0B5FCC', fillOpacity: 1, interactive: false,
+    }).addTo(instance);
+    instance.setView(position, 16, { animate: false });
+  }, [location]);
 
   useEffect(() => {
     const instance = map.current, group = layer.current;
@@ -103,10 +118,14 @@ export function RouteMap({ origin, destination, result, onPick, selected = 'safe
 
   return <div className={`map-frame${onPick ? ' map-frame--select' : ''}`}>
     <div className="map" ref={container} aria-label="서울 도보 경로 지도" />
-    <div className="map-controls" aria-label="지도 확대 및 축소">
+    <div className="map-controls" role="group" aria-label="지도 조작">
+      {onLocate && <button type="button" aria-label="지도에서 현재 위치 보기" disabled={locating} onClick={onLocate}>
+        <span className="location-glyph" aria-hidden="true" />
+      </button>}
       <button type="button" aria-label="지도 확대" onClick={() => map.current?.zoomIn(1)}>+</button>
       <button type="button" aria-label="지도 축소" onClick={() => map.current?.zoomOut(1)}>−</button>
     </div>
-    {tilesFailed && <p className="map-notice">배경 지도를 불러오지 못했어요. 경로는 아래 요약에서도 확인할 수 있어요.</p>}
+    <p role="status" className="sr-only">{location ? '현재 위치를 지도에 표시했어요.' : ''}</p>
+    {tilesFailed && <p role="status" className="map-notice">배경 지도를 불러오지 못했어요. {result ? '아래에서 경로 요약을 확인할 수 있어요.' : '장소를 검색할 수 있어요.'}</p>}
   </div>;
 }

@@ -16,6 +16,7 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [places, setPlaces] = useState<Place[]>([]);
   const active = useRef<AbortController>(null);
+  const input = useRef<HTMLInputElement>(null);
   useEffect(() => () => active.current?.abort(), []);
 
   async function search(term: string) {
@@ -27,7 +28,9 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
     setPlaces([]);
     setState('loading');
     try {
-      setPlaces(await searchPlaces(term.trim(), controller.signal));
+      const matches = await searchPlaces(term.trim(), controller.signal);
+      if (controller.signal.aborted) return;
+      setPlaces(matches);
       setState('done');
     } catch {
       if (!controller.signal.aborted) setState('error');
@@ -35,12 +38,23 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
   }
   const submit = (event: FormEvent) => { event.preventDefault(); void search(query); };
 
+  function changeQuery(value: string) {
+    active.current?.abort();
+    setQuery(value);
+    setPlaces([]);
+    setState('idle');
+  }
+
   return <>
     <form onSubmit={submit} role="search" className="place-search">
       <label htmlFor="place-query">{name} 검색</label>
       <div className="search-field">
-        <input id="place-query" type="search" placeholder="장소명이나 주소" value={query} maxLength={80}
-          onChange={(event) => setQuery(event.target.value)} />
+        <div className="search-entry">
+          <input ref={input} id="place-query" type="search" placeholder="장소 이름 또는 주소" value={query} maxLength={80}
+            onChange={(event) => changeQuery(event.target.value)} />
+          {query && <button type="button" className="button icon" aria-label="검색어 지우기"
+            onClick={() => { changeQuery(''); input.current?.focus(); }}>×</button>}
+        </div>
         <button className="button filled" type="submit" disabled={!query.trim()}>검색</button>
       </div>
     </form>
@@ -61,14 +75,8 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick }: Props) {
         <button onClick={() => onSelect(place)}>
           <span className="list-mark" aria-hidden="true">⌖</span>
           <span><strong>{place.name}</strong>{place.address && <small>{place.address}</small>}</span>
-          <span className="select-word" aria-hidden="true">선택</span>
         </button>
       </li>)}
     </ul>}
-    {state === 'idle' && field === 'destination' && <section className="suggestions">
-      <h2>추천 장소</h2>
-      <div className="button-row">{['관악구청', '서울대학교병원', '마포노인종합복지관'].map((item) =>
-        <button key={item} className="button outlined" onClick={() => void search(item)}>{item}</button>)}</div>
-    </section>}
   </>;
 }

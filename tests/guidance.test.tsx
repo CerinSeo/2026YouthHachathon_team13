@@ -64,7 +64,7 @@ it('previews in Korean, replays the current text and respects separate output to
   const { speak, vibrate, koVoice } = browserFeedback();
   const geo = fakePosition();
   render(<RouteGuidance route={route} risks={risks} live={false} />);
-  fireEvent.click(screen.getByRole('button', { name: '안내 미리보기' }));
+  fireEvent.click(screen.getByRole('button', { name: '경로 단계 보기' }));
   expect(speak.mock.calls[0][0]).toMatchObject({ lang: 'ko-KR', voice: koVoice, text: expect.stringContaining('결빙 위험') });
   expect(vibrate).toHaveBeenCalledWith([240, 110, 240]);
   expect(geo.watchPosition).not.toHaveBeenCalled();
@@ -106,7 +106,7 @@ it('keeps the visual steps available when location is denied and vibration is un
   render(<RouteGuidance route={route} risks={[]} live />);
   fireEvent.click(screen.getByRole('button', { name: '안내 시작' }));
   act(() => geo.watchPosition.mock.calls[0][1]({ code: 1 } as GeolocationPositionError));
-  expect(screen.getByRole('heading', { name: '안내 미리보기' })).toBeDefined();
+  expect(screen.getByRole('heading', { name: '경로 단계' })).toBeDefined();
   expect(screen.getByText(/진동 안내를 지원하지 않아요/)).toBeDefined();
   expect(screen.getByText(/오른쪽으로 도세요/)).toBeDefined();
 });

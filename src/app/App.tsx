@@ -42,7 +42,7 @@ function RouteResults({ result, onRetry, selected, onSelect }: {
   const [more, setMore] = useState(false);
   const details = selected === 'safe' ? recommendation.route : baseline;
   const riskCount = new Set(result.riskSegments.map((segment) => segment.edgeId)).size;
-  return <section className="result-sheet" aria-label="경로 요약">
+  return <section id="route-summary" tabIndex={-1} className="result-sheet" aria-label="경로 요약">
     {result.mode === 'historical_replay' && <span className="chip">과거 기상 재생</span>}
     <p className="meta">{result.dataAsOf ? <>기상 기준 {formatKst(result.dataAsOf)} · <a href="https://open-meteo.com/">Open-Meteo</a></>
       : `선택 시각 ${formatKst(result.selectedAt)}`}</p>
@@ -75,6 +75,8 @@ function RouteResults({ result, onRetry, selected, onSelect }: {
     {result.dataAsOf && <p className="risk-summary"><span aria-hidden="true">❄</span>
       {riskCount ? `일반 경로의 결빙 위험 예상구간 ${riskCount}곳` : '일반 경로에서 확인된 결빙 위험 예상구간이 없어요.'}</p>}
     {recommendation.route && <p className="meta">결빙 위험 예상구간을 고려한 경로예요. 실제 노면 상태에 따라 통행 위험이 달라질 수 있어요.</p>}
+    {details && <RouteGuidance key={selected} route={details} risks={result.riskSegments}
+      live={result.mode === 'current' && Date.parse(result.selectedAt) === currentHour()} />}
     {details && <button className="button outlined" aria-expanded={more} aria-controls="route-details"
       onClick={() => setMore(!more)}>{more ? '경로 상세 접기' : '경로 자세히 보기'}</button>}
     {more && details && <div id="route-details" className="route-details">
@@ -83,8 +85,6 @@ function RouteResults({ result, onRetry, selected, onSelect }: {
       <p>위험 예상은 기상·환경 자료의 추정 결과예요. 지도 자료에 계단이나 경사가 기록되지 않은 구간이 있을 수 있어요.</p>
       <p className="meta">보행망 기준 {formatKst(result.networkAsOf)} · OpenStreetMap</p>
     </div>}
-    {details && <RouteGuidance key={selected} route={details} risks={result.riskSegments}
-      live={result.mode === 'current' && Date.parse(result.selectedAt) === currentHour()} />}
   </section>;
 }
 
@@ -95,6 +95,8 @@ export function App() {
   const [origin, setOrigin] = useState<Place | null>(null);
   const [destination, setDestination] = useState<Place | null>(null);
   const [draftPoint, setDraftPoint] = useState<Coordinate | null>(null);
+  const [mapLocation, setMapLocation] = useState<Coordinate | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [now, setNow] = useState(currentHour);
   const [inputTime, setInputTime] = useState(() => localInput(currentHour()));
   const [demo, setDemo] = useState(false);
@@ -104,11 +106,17 @@ export function App() {
   const [selectedRoute, setSelectedRoute] = useState<'safe' | 'normal'>('safe');
   const active = useRef<AbortController>(null);
   const title = useRef<HTMLHeadingElement>(null);
-  const focusStage = useRef(false);
+  const homeSearchButton = useRef<HTMLButtonElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const menuDialog = useRef<HTMLDialogElement>(null);
+  const menuTitle = useRef<HTMLHeadingElement>(null);
+  const previousStage = useRef(stage);
   const version = useRef(0);
   useEffect(() => {
-    if (focusStage.current) title.current?.focus();
-    focusStage.current = true;
+    if (previousStage.current === stage) return;
+    previousStage.current = stage;
+    if (stage === 'home') homeSearchButton.current?.focus();
+    else title.current?.focus();
   }, [stage]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(currentHour()), 30_000);
@@ -154,7 +162,7 @@ export function App() {
       if (started === version.current) setError(routeErrors.MAP_DATA_UNAVAILABLE);
     }
   }
-  function locate() {
+  function locate(onLocated: (point: Coordinate) => void) {
     if (!navigator.geolocation) {
       setError('현재 위치를 사용할 수 없어요. 장소를 검색해 주세요.');
       return;
@@ -165,11 +173,11 @@ export function App() {
     navigator.geolocation.getCurrentPosition(({ coords }) => {
       if (started !== version.current) return;
       setBusy(null);
-      void choose(selectedPlace([coords.longitude, coords.latitude], 'device'));
+      onLocated([coords.longitude, coords.latitude]);
     }, () => {
       if (started !== version.current) return;
       setBusy(null);
-      setError('현재 위치를 확인하지 못했어요. 출발지를 검색하거나 지도에서 선택해 주세요.');
+      setError('현재 위치를 확인하지 못했어요. 장소 이름이나 주소로 검색해 주세요.');
     }, { timeout: 8000, maximumAge: 0 });
   }
   async function applyDemo(id: keyof typeof demoCases, openResults = false) {
@@ -252,42 +260,78 @@ export function App() {
     setBusy(null);
   }
 
+  function startSearch() {
+    setOrigin(null);
+    setDestination(null);
+    setDemo(false);
+    setInputTime(localInput(currentHour()));
+    edit('destination');
+  }
+
+  function openMenu() {
+    menuDialog.current?.showModal();
+    setMenuOpen(true);
+    menuTitle.current?.focus();
+  }
+
+  const mapLoading = <p role="status" className="map-loading">지도를 불러오고 있어요…</p>;
+  const message = <>
+    {busy && <p role="status" className="notice progress">
+      {busy === 'route' ? '실제 기상과 보행로를 확인하고 있어요…' : busy === 'demo' ? '시연 장소를 찾고 있어요…' : '현재 위치를 확인하고 있어요…'}
+    </p>}
+    {error && <p role="alert" className="notice error">{error}</p>}
+  </>;
+
   return <>
     <a className="skip-link" href="#content">본문으로 건너뛰기</a>
     <header className="topbar">
       <div className="topbar-inner">
         {stage !== 'home' && <button className="button icon back" aria-label="이전 화면"
           onClick={() => go(stage === 'pick' ? 'search' : stage === 'results' ? 'confirm' : stage === 'search' && (origin || destination) ? 'confirm' : 'home')}>‹</button>}
-        <button className="wordmark" onClick={() => go('home')} aria-label="빙빙제로 홈"><span aria-hidden="true">❄</span> 빙빙제로</button>
+        <button className="wordmark" onClick={() => go('home')} aria-label="빙빙제로 홈"><span aria-hidden="true">❄</span>빙빙제로</button>
+        {stage === 'home' && <button type="button" ref={menuButton} className="button icon menu-button"
+          aria-label="메뉴" aria-haspopup="dialog" aria-controls="app-menu" aria-expanded={menuOpen}
+          onClick={openMenu}><span className="menu-glyph" aria-hidden="true" /></button>}
       </div>
     </header>
-    <main id="content" className={stage === 'home' ? 'main home' : 'main'}>
-      {stage === 'home' && <>
-        <section className="hero">
-          <div className="winter" aria-hidden="true"><span>❄</span><span>❄</span><span>❄</span></div>
-          <div className="hero-copy">
-            <span className="chip">서울 전역 · 도보</span>
-            <h1 ref={title} tabIndex={-1}>빙판길은 피하고,<br />안전 경로를 한눈에 확인하세요.</h1>
-            <p>기상·환경 자료를 바탕으로 결빙 위험 예상구간을 알려드려요.</p>
-            <button className="button filled hero-cta" onClick={() => { setDemo(false); setInputTime(localInput(currentHour())); edit('destination'); }}>
-              <span aria-hidden="true">⌕</span> 목적지 검색하기
-            </button>
-          </div>
-        </section>
-        <section className="demo-card">
-          <span className="demo-icon" aria-hidden="true">❄</span>
-          <div><h2>과거 기상으로 경로 비교</h2><p>2026년 2월 2일 오후 1시의 양재역 주변 예보를 확인해 보세요.</p></div>
-          <button className="button outlined" onClick={() => void applyDemo('yangjae')} disabled={busy === 'demo'}>양재 시연 열기</button>
-        </section>
-        <PushDemo />
-        <details className="other-demos">
-          <summary>다른 과거 시연 경로</summary>
-          <div className="button-row">
-            <button className="button outlined" onClick={() => void applyDemo('hyehwa')} disabled={busy === 'demo'}>혜화역에서 병원까지</button>
-            <button className="button outlined" onClick={() => void applyDemo('cityHall')} disabled={busy === 'demo'}>시청역에서 서울광장까지</button>
+    <dialog ref={menuDialog} id="app-menu" className="app-menu" aria-labelledby="app-menu-title"
+      onClose={() => { setMenuOpen(false); menuButton.current?.focus(); }}>
+      <header className="menu-heading">
+        <h2 id="app-menu-title" ref={menuTitle} tabIndex={-1}>메뉴</h2>
+        <button type="button" className="button outlined" onClick={() => menuDialog.current?.close()}>닫기</button>
+      </header>
+      {menuOpen && <>
+        <details className="menu-section">
+          <summary>알림 설정</summary>
+          <PushDemo />
+        </details>
+        <details className="menu-section">
+          <summary>시연 경로</summary>
+          <div className="menu-actions">
+            {([['yangjae', '양재 시연 열기'], ['hyehwa', '혜화역에서 병원까지'], ['cityHall', '시청역에서 서울광장까지']] as const)
+              .map(([id, label]) => <button key={id} type="button" className="button outlined"
+                onClick={() => { menuDialog.current?.close(); void applyDemo(id); }}>{label}</button>)}
           </div>
         </details>
       </>}
+    </dialog>
+    <main id="content" tabIndex={-1}
+      className={stage === 'home' ? 'main home' : stage === 'confirm' || stage === 'results' ? 'main main--route' : 'main'}>
+      {stage === 'home' && <section className="home-map" aria-labelledby="home-title">
+        <div className="home-search">
+          <h1 id="home-title" className="sr-only">서울 도보 길찾기</h1>
+          <button ref={homeSearchButton} className="map-search-button" onClick={startSearch}>
+            <span className="search-glyph" aria-hidden="true" />목적지 검색하기
+          </button>
+          {message}
+        </div>
+        <div className="home-map-layer">
+          <Suspense fallback={mapLoading}>
+            <MapView origin={null} destination={null} location={mapLocation}
+              onLocate={() => locate(setMapLocation)} locating={busy === 'locate'} />
+          </Suspense>
+        </div>
+      </section>}
       {stage === 'notification' && <section className="panel">
         <h1 ref={title} tabIndex={-1}>양재 시연 경로</h1>
         <p>양재역 4번 출구 → 양재동우체국</p>
@@ -297,25 +341,26 @@ export function App() {
         <h1 ref={title} tabIndex={-1}>{field === 'origin' ? '출발지 선택' : '목적지 선택'}</h1>
         {(origin || destination) && <p className="meta">{origin ? `출발지 · ${origin.name}` : `목적지 · ${destination?.name}`}</p>}
         <PlaceSearch key={field} field={field} onSelect={(place) => void choose(place)}
-          onLocate={field === 'origin' ? locate : undefined} onPick={() => { setDraftPoint(null); go('pick'); }} />
+          onLocate={field === 'origin' ? () => locate((point) => void choose(selectedPlace(point, 'device'))) : undefined}
+          onPick={() => { setDraftPoint(null); go('pick'); }} />
       </section>}
       {stage === 'pick' && <section>
         <h1 ref={title} tabIndex={-1}>지도에서 {field === 'origin' ? '출발지' : '목적지'} 선택</h1>
         <p>서울 안의 지점을 눌러 선택하세요. 장소 이름으로도 검색할 수 있어요.</p>
-        <Suspense fallback={<p role="status">지도를 불러오고 있어요…</p>}>
+        <Suspense fallback={mapLoading}>
           <MapView origin={field === 'origin' && draftPoint ? selectedPlace(draftPoint, 'map') : origin}
             destination={field === 'destination' && draftPoint ? selectedPlace(draftPoint, 'map') : destination}
             onPick={setDraftPoint} />
         </Suspense>
-        <div className="button-row">
+        <div className="button-row pick-actions">
           <button className="button filled" disabled={!draftPoint} onClick={() => draftPoint && void choose(selectedPlace(draftPoint, 'map'))}>이 위치 사용</button>
           <button className="button outlined" onClick={() => go('search')}>장소 검색으로 돌아가기</button>
         </div>
       </section>}
-      {stage === 'confirm' && <section>
-        <h1 ref={title} tabIndex={-1}>경로 확인</h1>
+      {stage === 'confirm' && <section className="route-screen">
+        <header className="route-header"><h1 ref={title} tabIndex={-1}>경로 확인</h1></header>
         <div className="workspace">
-          <Suspense fallback={<p role="status">지도를 불러오고 있어요…</p>}>
+          <Suspense fallback={mapLoading}>
             <MapView origin={origin} destination={destination} />
           </Suspense>
           <div className="panel confirm-panel">
@@ -336,26 +381,25 @@ export function App() {
               </button>
               {busy === 'route' && <button className="button outlined" onClick={cancel}>계산 취소</button>}
             </div>
+            {message}
           </div>
         </div>
       </section>}
-      {stage === 'results' && result && <section>
-        <header className="result-heading">
+      {stage === 'results' && result && <section className="route-screen route-screen--results">
+        <header className="route-header result-heading">
           <div><h1 ref={title} tabIndex={-1}>경로 결과</h1><p>{origin?.name} → {destination?.name}</p></div>
           <button className="button outlined" onClick={() => go('confirm')}>입력 수정</button>
         </header>
         <div className="workspace">
-          <Suspense fallback={<p role="status">지도를 불러오고 있어요…</p>}>
+          <a className="skip-link skip-link--map" href="#route-summary">경로 요약으로 건너뛰기</a>
+          <Suspense fallback={mapLoading}>
             <MapView origin={origin} destination={destination} result={result} selected={selectedRoute} />
           </Suspense>
           <RouteResults key={result.selectedAt + result.recommendation.status}
             result={result} selected={selectedRoute} onSelect={setSelectedRoute} onRetry={() => void calculate()} />
         </div>
       </section>}
-      {busy && <p role="status" className="notice progress">
-        {busy === 'route' ? '실제 기상과 보행로를 확인하고 있어요…' : busy === 'demo' ? '시연 장소를 찾고 있어요…' : '현재 위치를 확인하고 있어요…'}
-      </p>}
-      {error && <p role="alert" className="notice error">{error}</p>}
+      {stage !== 'home' && stage !== 'confirm' && message}
     </main>
   </>;
 }

@@ -165,7 +165,7 @@ export function RouteGuidance({ route, risks, live }: Props) {
   if (mode === 'idle') return <div className="button-row">
     {live && <button className="button filled" ref={opener} onClick={start}>안내 시작</button>}
     <button className={`button ${live ? 'outlined' : 'filled'}`} ref={live ? undefined : opener}
-      onClick={preview}>안내 미리보기</button>
+      onClick={preview}>경로 단계 보기</button>
   </div>;
 
   const trackedCue = offset === null ? undefined : plan.cues.find((cue) => isUpcoming(cue, offset));
@@ -173,7 +173,7 @@ export function RouteGuidance({ route, risks, live }: Props) {
   const from = mode === 'preview' ? (index ? plan.cues[index - 1].offset : 0) : offset ?? 0;
   const message = mode === 'arrived' ? '목적지 근처입니다' : cue ? cueText(cue, from) : positionMessage;
   return <section className="route-guidance" aria-labelledby="guidance-heading">
-    <h3 id="guidance-heading" ref={focus} tabIndex={-1}>{mode === 'preview' ? '안내 미리보기' : '도보 안내'}</h3>
+    <h3 id="guidance-heading" ref={focus} tabIndex={-1}>{mode === 'preview' ? '경로 단계' : '도보 안내'}</h3>
     {mode === 'preview' && <p className="meta">경로 단계 {index + 1} / {plan.cues.length}</p>}
     <div role="status">
       <p className="guidance-instruction">{message}</p>
