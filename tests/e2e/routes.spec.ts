@@ -205,9 +205,14 @@ test('live historical demo renders a traceable walking comparison', async ({ pag
   await expect(page.getByText(/과거 기상 재생|기상 기준|기상 시각/)).toHaveCount(0);
   const extraTime = page.getByText(/일반 경로보다 (?:약 [1-9]\d*분|1분 미만) 더 걸려요/);
   await expect(extraTime).toBeVisible();
+  const recommendedLine = page.locator('.map path[stroke="#1F83FF"]');
+  await expect(recommendedLine).toHaveAttribute('stroke-width', '8');
   await page.getByRole('radio', { name: /일반 경로/ }).check();
+  await expect(recommendedLine).toHaveAttribute('stroke-width', '3');
+  await expect(page.locator('.map path[stroke="#65778A"]')).toHaveAttribute('stroke-width', '7');
   await expect(extraTime).toHaveCount(0);
   await page.getByRole('radio', { name: /추천 경로/ }).check();
+  await expect(recommendedLine).toHaveAttribute('stroke-width', '8');
   await expect(page.getByRole('link', { name: 'Open-Meteo' })).toBeVisible();
   await expect(page.getByRole('radio', { name: /추천 경로/ })).toBeVisible();
   await expect(page.getByRole('radio', { name: /일반 경로/ })).toBeVisible();

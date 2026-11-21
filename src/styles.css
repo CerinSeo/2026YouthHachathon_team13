@@ -210,19 +210,21 @@ p, h1, h2, small, strong { overflow-wrap: anywhere; }
 .route-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .5rem;
   min-width: 0; border: 0; padding: 0; margin: .65rem 0; }
 .route-choices legend { font-weight: 700; margin: 0 0 .5rem; }
-.route-option { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start;
+.route-option { --route-ink: #32465C; --route-surface: #F0F3F7;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start;
   align-items: center; gap: .25rem; padding: .7rem; border-radius: .95rem;
-  border: 1px solid var(--border); background: var(--surface-low); cursor: pointer; }
-.route-option:has(input:checked) { background: var(--primary-container); border: 2px solid var(--primary); }
+  border: 2px solid var(--route-ink); background: var(--route-surface); color: var(--route-ink); cursor: pointer; }
+.route-option--safe { --route-ink: var(--primary); --route-surface: var(--primary-container); }
+.route-option:has(input:checked) { background: var(--route-ink); color: var(--white); }
 .route-option:has(input:focus-visible) { outline: 3px solid var(--on-primary-container); outline-offset: 2px; }
-.route-option input { grid-area: 1 / 2; accent-color: var(--primary); width: 1.1rem; height: 1.1rem; margin: 0; }
+.route-option input { grid-area: 1 / 2; width: 1.2rem; height: 1.2rem; margin: 0; }
+.route-option input:checked { color-scheme: dark; accent-color: var(--white); }
 .route-option > span { grid-area: 1 / 1; font-weight: 750; font-size: 1.125rem; overflow-wrap: anywhere; }
 .route-option > :is(strong, small) { grid-column: 1 / -1; }
-.route-option strong { line-height: 1.15; font-size: 1.875rem; }
-.route-option--safe strong { color: var(--primary); font-size: 2.375rem; }
-.route-option small { font-size: 1.1875rem; }
-.legend-line { display: inline-block; vertical-align: middle; margin-right: .35rem; width: 1.1rem; border-top: 4px solid var(--brand); }
-.legend-line.dashed { border-top: 4px dashed #65778A; }
+.route-option strong { line-height: 1.15; font-size: 2.375rem; }
+.route-option small { color: inherit; font-size: 1.1875rem; }
+.legend-line { display: inline-block; vertical-align: middle; margin-right: .35rem; width: 1.1rem; border-top: 4px solid currentColor; }
+.legend-line.dashed { border-top-style: dashed; }
 .risk-summary { display: flex; align-items: baseline; gap: .45rem; font-size: 1.125rem; font-weight: 750; }
 .risk-summary span { color: #006DB3; }
 .route-extra-time { margin: .65rem 0; padding: .6rem .8rem; border-radius: .75rem;

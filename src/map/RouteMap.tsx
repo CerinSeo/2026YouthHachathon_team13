@@ -98,9 +98,9 @@ export function RouteMap({ origin, destination, result, onPick, location, initia
       L.polyline(line, { color, weight, dashArray }).addTo(group).bindTooltip(label(name));
     };
     if (result) {
-      const normal = () => drawRoute(result.baseline.coordinates, '일반 경로', '#65778A', selected === 'normal' ? 6 : 4, '8 7');
+      const normal = () => drawRoute(result.baseline.coordinates, '일반 경로', '#65778A', selected === 'normal' ? 7 : 4, '8 7');
       const safe = () => {
-        if (result.recommendation.route) drawRoute(result.recommendation.route.coordinates, '추천 경로', '#1F83FF', selected === 'safe' ? 8 : 6);
+        if (result.recommendation.route) drawRoute(result.recommendation.route.coordinates, '추천 경로', '#1F83FF', selected === 'safe' ? 8 : 3);
       };
       if (result.recommendation.status === 'same_as_baseline') {
         if (selected === 'normal') normal();
