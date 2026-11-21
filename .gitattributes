@@ -1,6 +1,7 @@
 * text=auto eol=lf
 # These checksums cover the exact bytes, including line endings.
 /public/data/seoul-walk/** -text
+/public/data/weather/** -text
 *.png binary
 *.jpg binary
 *.webp binary

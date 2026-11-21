@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 import re
 import shutil
 from pathlib import Path
@@ -20,8 +21,8 @@ def validate_tiles(folder):
         raise ValueError("Unexpected snapshot format or license")
     south, west, north, east = index["bbox"]
     step = index["step"]
-    columns = round((east - west) / step + 0.49)
-    rows = round((north - south) / step + 0.49)
+    columns = math.ceil((east - west) / step)
+    rows = math.ceil((north - south) / step)
     expected = {f"{x}-{y}" for x in range(columns) for y in range(rows)}
     if index["tiles"].keys() != expected:
         raise ValueError("Incomplete Seoul snapshot coverage")

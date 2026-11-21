@@ -17,5 +17,12 @@ and distributed under the same ODbL 1.0 terms.
 
 Background map tiles are used under the
 [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
-Place search and weather are fetched from their providers at runtime.
+Place search and regular forecasts are fetched from their providers at runtime.
+
+The dated demos use an hourly subset of the ECMWF AIFS archive from
+[Open-Meteo Historical Forecast](https://open-meteo.com/en/docs/historical-forecast-api),
+shared under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Fields were selected and timestamps converted to UTC. Download details are in
+`public/data/weather/aifs-20260202.json`.
+
 The private input directory contains other data and local credentials.
