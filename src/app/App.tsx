@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
+import homeLogo from '../assets/bingbingzero-logo.png';
 import { type Coordinate, type Place, type RouteComparison, RouteError, type RouteRequest } from '../core/contracts';
 import { compareRoutes, routeMetadata } from '../core/routing';
 import { inCity } from '../core/geo';
@@ -376,7 +377,7 @@ export function App() {
       className={stage === 'home' ? 'main home' : stage === 'confirm' || stage === 'results' ? 'main main--route' : 'main'}>
       {stage === 'home' && <section className="home-map" aria-labelledby="home-title">
         <header className="home-intro">
-          <div className="home-brand"><span aria-hidden="true">❄</span> 빙빙제로</div>
+          <img className="home-brand" src={homeLogo} alt="빙빙제로" width={1135} height={316} />
           <h1 id="home-title">빙판길을 피해 걷는 길</h1>
           <button type="button" ref={menuButton}
             className={`button icon menu-button${showFirstVisit ? ' menu-button--highlight' : ''}`}
