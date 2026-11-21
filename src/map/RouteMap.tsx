@@ -15,6 +15,7 @@ interface Props {
 }
 
 const tileUrl = import.meta.env.VITE_MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const weatherAttribution = '<a href="https://open-meteo.com/">Open-Meteo</a>';
 const latLng = ([x, y]: Coordinate): L.LatLngTuple => [y, x];
 
 const pin = (type: 'start' | 'destination' | 'risk', text: string) => L.divIcon({
@@ -34,6 +35,7 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
   const layer = useRef<L.LayerGroup | null>(null);
   const locationMarker = useRef<L.CircleMarker | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
+  const hasWeather = Boolean(result?.dataAsOf);
   const pickRef = useRef(onPick);
   useEffect(() => { pickRef.current = onPick; }, [onPick]);
 
@@ -42,7 +44,7 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
     const instance = L.map(container.current, { scrollWheelZoom: false, zoomControl: false }).setView([37.5665, 126.978], 12);
     instance.attributionControl.setPrefix(false);
     const tiles = L.tileLayer(tileUrl, {
-      maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors (ODbL)</a>',
+      maxZoom: 19, attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a>',
     }).addTo(instance);
     tiles.on('tileerror', () => setTilesFailed(true));
     tiles.on('load', () => {
@@ -55,6 +57,13 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
     resize.observe(container.current);
     return () => { resize.disconnect(); instance.remove(); map.current = null; layer.current = null; locationMarker.current = null; };
   }, []);
+
+  useEffect(() => {
+    const attribution = map.current?.attributionControl;
+    if (!hasWeather || !attribution) return;
+    attribution.addAttribution(weatherAttribution);
+    return () => { attribution.removeAttribution(weatherAttribution); };
+  }, [hasWeather]);
 
   useEffect(() => {
     const instance = map.current;
@@ -83,7 +92,7 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
     if (result) {
       const normal = () => drawRoute(result.baseline.coordinates, '일반 경로', '#65778A', selected === 'normal' ? 6 : 4, '8 7');
       const safe = () => {
-        if (result.recommendation.route) drawRoute(result.recommendation.route.coordinates, '안전 경로', '#1F83FF', selected === 'safe' ? 8 : 6);
+        if (result.recommendation.route) drawRoute(result.recommendation.route.coordinates, '추천 경로', '#1F83FF', selected === 'safe' ? 8 : 6);
       };
       if (result.recommendation.status === 'same_as_baseline') {
         if (selected === 'normal') normal();
@@ -112,7 +121,8 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
       const position = latLng(place.coordinates);
       points.push(position);
       L.marker(position, { icon: pin(type, type === 'start' ? '●' : '◆'), title: `${caption} · ${place.name}` })
-        .addTo(group).bindTooltip(label(`${caption} · ${place.name}`));
+        .addTo(group).bindTooltip(label(`${caption} · ${place.name}`))
+        .on('click', () => pickRef.current?.(place.coordinates));
     }
     if (points.length > 1) instance.fitBounds(L.latLngBounds(points), { padding: [42, 42], maxZoom: 18, animate: false });
     else if (points.length === 1) instance.setView(points[0], 16, { animate: false });
@@ -128,6 +138,6 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
       <button type="button" aria-label="지도 축소" onClick={() => map.current?.zoomOut(1)}>−</button>
     </div>
     <p role="status" className="sr-only">{location ? '현재 위치를 지도에 표시했어요.' : ''}</p>
-    {tilesFailed && <p role="status" className="map-notice">배경 지도를 불러오지 못했어요. {result ? '아래에서 경로 요약을 확인할 수 있어요.' : '장소를 검색할 수 있어요.'}</p>}
+    {tilesFailed && <p role="status" className="map-notice">배경 지도를 불러오지 못했어요.</p>}
   </div>;
 }

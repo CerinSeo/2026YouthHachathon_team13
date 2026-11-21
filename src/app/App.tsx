@@ -15,7 +15,7 @@ const demoCases = {
   hyehwa: { origin: '혜화역 3번출구', destination: '서울대학교병원 동문' },
   cityHall: { origin: '시청역 5번출구', destination: '서울광장' },
 };
-type Stage = 'home' | 'notification' | 'search' | 'pick' | 'confirm' | 'results';
+type Stage = 'home' | 'notification' | 'confirm' | 'results';
 type Field = 'origin' | 'destination';
 const routeErrors: Record<string, string> = {
   OUTSIDE_SEOUL: '서울 안의 장소를 선택해 주세요.',
@@ -41,29 +41,29 @@ function RouteResults({ result, onRetry, selected, onSelect, guidanceMode, onMod
   instructionPortal: HTMLElement | null; destination: string;
 }) {
   const { baseline, recommendation } = result;
-  const [more, setMore] = useState(false);
   const details = selected === 'safe' ? recommendation.route : baseline;
   const riskCount = new Set(result.riskSegments.map((segment) => segment.edgeId)).size;
   const extra = recommendation.additionalSeconds;
   return <section id="route-summary" tabIndex={-1} className="result-sheet" aria-label="경로 요약">
     <div className="comparison" hidden={guidanceMode !== 'idle'}>
-      {result.mode === 'historical_replay' && <span className="chip">과거 기상 재생</span>}
-      <p className="meta">{result.dataAsOf ? <>기상 기준 {formatKst(result.dataAsOf)} · <a href="https://open-meteo.com/">Open-Meteo</a></>
-        : `선택 시각 ${formatKst(result.selectedAt)}`}</p>
+      {result.mode !== 'current' && <div className="weather-time">
+        <strong>{result.mode === 'historical_replay' ? '과거 기상 재생' : '예보 시각'}</strong>
+        <span>{formatKst(result.selectedAt)}</span>
+      </div>}
       {recommendation.status === 'not_evaluated' && <div className="notice warning" role="status">
         <strong>{result.reason === 'weather_failed' ? '기상 정보를 불러오지 못했어요' : '위험 정보를 계산할 자료가 부족해요'}</strong>
-        <p>지금은 일반 경로만 볼 수 있어요.</p>
+        <p>일반 경로만 볼 수 있어요.</p>
         <button className="button outlined" onClick={onRetry}>다시 시도</button>
       </div>}
       {recommendation.status === 'unavailable' && <div className="notice warning" role="status">
-        <strong>안전 경로를 찾지 못했어요</strong>
-        <p>회피 대상 구간을 빼면 이어지는 도보 경로가 없어요. 출발지나 목적지를 바꿔 보세요.</p>
+        <strong>추천 경로를 찾지 못했어요</strong>
+        <p>출발지나 목적지를 바꿔 보세요.</p>
       </div>}
       <fieldset className="route-choices">
         <legend className="sr-only">지도에서 볼 경로</legend>
         {recommendation.route && <label className="route-option route-option--safe">
           <input type="radio" name="route" checked={selected === 'safe'} onChange={() => onSelect('safe')} />
-          <span><span className="legend-line solid" aria-hidden="true" />안전 경로</span>
+          <span><span className="legend-line solid" aria-hidden="true" />추천 경로</span>
           <strong>{duration(recommendation.route.durationSeconds)}</strong>
           <small>{distanceLabel(recommendation.route.distanceM)}</small>
         </label>}
@@ -74,24 +74,22 @@ function RouteResults({ result, onRetry, selected, onSelect, guidanceMode, onMod
           <small>{distanceLabel(baseline.distanceM)}</small>
         </label>
       </fieldset>
-      {extra !== null && <p className="time-difference">{extra > 0 ? `일반 경로보다 ${duration(extra)} 더 걸려요`
-        : recommendation.status === 'same_as_baseline' ? '두 경로가 같아요.' : '추가 소요시간이 없어요.'}</p>}
+      {extra !== null && (extra > 0 || recommendation.status === 'same_as_baseline') &&
+        <p className="time-difference">{extra > 0 ? `일반 경로보다 ${duration(extra)} 더 걸려요` : '두 경로가 같아요.'}</p>}
       {result.dataAsOf && <p className="risk-summary"><span aria-hidden="true">❄</span>
-        {riskCount ? `일반 경로의 결빙 위험 예상구간 ${riskCount}곳` : '일반 경로에서 확인된 결빙 위험 예상구간이 없어요.'}</p>}
+        {riskCount ? `일반 경로 · 결빙 위험 예상구간 ${riskCount}곳` : '예보상 결빙 위험 구간이 없어요.'}</p>}
     </div>
     {details && <RouteGuidance key={selected} route={details} risks={result.riskSegments}
       live={result.mode === 'current' && Date.parse(result.selectedAt) === currentHour()}
       instructionPortal={instructionPortal} destination={destination} onModeChange={onModeChange} onPositionChange={onPositionChange} />}
     <div className="comparison-details" hidden={guidanceMode !== 'idle'}>
-      {recommendation.route && <p className="meta">결빙 위험을 고려한 경로예요. 실제 노면 상태와 다를 수 있어요.</p>}
-      {details && <button className="button outlined" aria-expanded={more} aria-controls="route-details"
-        onClick={() => setMore(!more)}>{more ? '경로 상세 접기' : '경로 자세히 보기'}</button>}
-      {more && details && <div id="route-details" className="route-details">
-        <h3>{selected === 'safe' ? '안전 경로 상세' : '일반 경로 상세'}</h3>
-        <p>거리 {distanceLabel(details.distanceM)} · 예상 소요시간 {duration(details.durationSeconds)}</p>
-        <p>위험 예상은 기상·환경 자료의 추정 결과예요. 지도 자료에 계단이나 경사가 기록되지 않은 구간이 있을 수 있어요.</p>
-        <p className="meta">보행망 기준 {formatKst(result.networkAsOf)} · OpenStreetMap</p>
-      </div>}
+      {result.dataAsOf && <p className="surface-note">실제 노면을 확인하세요.</p>}
+      {details && <details className="route-details">
+        <summary>경로 자세히 보기</summary>
+        <p>{result.dataAsOf ? '기상 기준' : '선택 시각'} {formatKst(result.dataAsOf ?? result.selectedAt)}</p>
+        <p>지도에 계단·경사 정보가 빠진 곳이 있을 수 있어요.</p>
+        <p>보행망 기준 {formatKst(result.networkAsOf)}</p>
+      </details>}
     </div>
   </section>;
 }
@@ -100,6 +98,8 @@ export function App() {
   const [stage, setStage] = useState<Stage>(() =>
     isYangjaeNotification(new URLSearchParams(window.location.search)) ? 'notification' : 'home');
   const [field, setField] = useState<Field>('destination');
+  const [editingPlace, setEditingPlace] = useState(false);
+  const [pickingOnMap, setPickingOnMap] = useState(false);
   const [origin, setOrigin] = useState<Place | null>(null);
   const [destination, setDestination] = useState<Place | null>(null);
   const [draftPoint, setDraftPoint] = useState<Coordinate | null>(null);
@@ -121,9 +121,10 @@ export function App() {
   const menuButton = useRef<HTMLButtonElement>(null);
   const menuDialog = useRef<HTMLDialogElement>(null);
   const menuTitle = useRef<HTMLHeadingElement>(null);
+  const originButton = useRef<HTMLButtonElement>(null);
+  const destinationButton = useRef<HTMLButtonElement>(null);
   const previousStage = useRef(stage);
   const version = useRef(0);
-  const searchBack = useRef<'home' | 'confirm'>('home');
   useEffect(() => {
     if (previousStage.current === stage) return;
     previousStage.current = stage;
@@ -153,15 +154,28 @@ export function App() {
     setError('');
     setGuidanceMode('idle');
     setGuidePosition(null);
+    setEditingPlace(false);
+    setPickingOnMap(false);
     setStage(next);
   }
   function edit(next: Field) {
-    if (stage === 'home' || stage === 'confirm') searchBack.current = stage;
+    active.current?.abort();
+    version.current++;
+    setError('');
+    setBusy(null);
     setField(next);
     setDraftPoint(null);
-    go('search');
+    setPickingOnMap(false);
+    setEditingPlace(true);
+    if (editingPlace && field === next) requestAnimationFrame(() => document.getElementById('place-query')?.focus());
   }
-  async function choose(place: Place) {
+  function closeEditor() {
+    version.current++;
+    setError('');
+    setEditingPlace(false);
+    requestAnimationFrame(() => (field === 'origin' ? originButton.current : destinationButton.current)?.focus());
+  }
+  async function choose(place: Place, target = field) {
     const started = version.current;
     try {
       const { boundary } = await routeMetadata();
@@ -170,9 +184,10 @@ export function App() {
         setError('서울 안의 장소를 선택해 주세요.');
         return;
       }
-      if (field === 'origin') setOrigin(place);
+      if (target === 'origin') setOrigin(place);
       else setDestination(place);
       go('confirm');
+      requestAnimationFrame(() => (target === 'origin' ? originButton.current : destinationButton.current)?.focus());
     } catch {
       if (started === version.current) setError(routeErrors.MAP_DATA_UNAVAILABLE);
     }
@@ -233,7 +248,7 @@ export function App() {
   }
   async function calculate() {
     if (!origin || !destination) {
-      edit(origin ? 'destination' : 'origin');
+      edit(destination ? 'origin' : 'destination');
       return;
     }
     const timestamp = dateTimeFromKst(inputTime);
@@ -280,7 +295,7 @@ export function App() {
     setDestination(null);
     setDemo(false);
     setInputTime(localInput(currentHour()));
-    edit('destination');
+    go('confirm');
   }
 
   function useHomeLocation() {
@@ -301,18 +316,19 @@ export function App() {
   }
 
   const mapLoading = <p role="status" className="map-loading">지도를 불러오고 있어요…</p>;
-  const backButton = (to: Stage) => <button type="button" className="button icon back" aria-label="이전 화면" onClick={() => go(to)}>‹</button>;
+  const backButton = (to: Stage, label = '이전 화면') =>
+    <button type="button" className="button icon back" aria-label={label} onClick={() => go(to)}>‹</button>;
   const message = <>
     {busy && <p role="status" className="notice progress">
-      {busy === 'route' ? '실제 기상과 보행로를 확인하고 있어요…' : busy === 'demo' ? '시연 장소를 찾고 있어요…' : '현재 위치를 확인하고 있어요…'}
+      {busy === 'route' ? '경로를 찾고 있어요…' : busy === 'demo' ? '시연 장소를 찾고 있어요…' : '현재 위치를 확인하고 있어요…'}
     </p>}
     {error && <p role="alert" className="notice error">{error}</p>}
   </>;
 
   return <>
     <a className="skip-link" href="#content">본문으로 건너뛰기</a>
-    {(stage === 'pick' || stage === 'notification') && <header className="topbar">
-      <div className="topbar-inner">{backButton(stage === 'pick' ? 'search' : 'home')}
+    {stage === 'notification' && <header className="topbar">
+      <div className="topbar-inner">{backButton('home')}
         <button className="wordmark" onClick={() => go('home')} aria-label="빙빙제로 홈"><span aria-hidden="true">❄</span>빙빙제로</button>
       </div></header>}
     <dialog ref={menuDialog} id="app-menu" className="app-menu" aria-labelledby="app-menu-title"
@@ -337,15 +353,11 @@ export function App() {
       </>}
     </dialog>
     <main id="content" tabIndex={-1}
-      className={stage === 'home' ? 'main home' : stage === 'search' ? 'main main--search'
-        : stage === 'confirm' || stage === 'results' ? 'main main--route' : 'main'}>
+      className={stage === 'home' ? 'main home' : stage === 'confirm' || stage === 'results' ? 'main main--route' : 'main'}>
       {stage === 'home' && <section className="home-map" aria-labelledby="home-title">
-        <header className="home-search">
-          <h1 id="home-title" className="sr-only">서울 도보 길찾기</h1>
-          <button ref={homeSearchButton} className="map-search-button" onClick={startSearch}
-            aria-label="빙빙제로, 어디로 가세요? 목적지 검색하기">
-            <span className="search-glyph" aria-hidden="true" /><strong>빙빙제로</strong><span>어디로 가세요?</span>
-          </button>
+        <header className="home-intro">
+          <div className="home-brand"><span aria-hidden="true">❄</span> 빙빙제로</div>
+          <h1 id="home-title">빙판길을 피해 걷는 길</h1>
           <button type="button" ref={menuButton} className="button icon menu-button"
             aria-label="메뉴" aria-haspopup="dialog" aria-controls="app-menu" aria-expanded={menuOpen}
             onClick={openMenu}><span className="menu-glyph" aria-hidden="true" /></button>
@@ -357,13 +369,10 @@ export function App() {
           </Suspense>
         </div>
         <section className="home-sheet" aria-label="도보 길찾기">
-          <button type="button" className="location-action" disabled={busy === 'locate'} onClick={useHomeLocation}>
-            <span className="location-glyph" aria-hidden="true" />{mapLocation ? '출발지 · 현재 위치' : '현재 위치에서 출발하기'}
-          </button>
-          <button type="button" className="destination-action" onClick={startSearch}>
-            <span className="search-glyph" aria-hidden="true" /><span>목적지를 검색해 주세요</span><span aria-hidden="true">›</span>
-          </button>
           {message}
+          <button type="button" ref={homeSearchButton} className="button filled main-action" onClick={startSearch}>
+            목적지 입력하기
+          </button>
         </section>
       </section>}
       {stage === 'notification' && <section className="panel">
@@ -371,75 +380,61 @@ export function App() {
         <p>양재역 4번 출구 → 양재동우체국</p>
         {error && <button className="button filled" onClick={() => void applyDemo('yangjae', true)}>다시 시도</button>}
       </section>}
-      {stage === 'search' && <section className="search-screen">
-        <div className="search-panel">
-          <div className="search-header">{backButton(searchBack.current)}
-            <h1 ref={title} tabIndex={-1}>{field === 'origin' ? '출발지 선택' : '목적지 선택'}</h1>
-          </div>
-          <PlaceSearch key={field} field={field} onSelect={(place) => void choose(place)}
-            originLabel={origin?.name} onEditOrigin={field === 'destination' ? () => edit('origin') : undefined}
-            onLocate={field === 'origin' ? () => locate((point) => void choose(selectedPlace(point, 'device'))) : undefined}
-            onPick={() => { setDraftPoint(null); go('pick'); }} />
-          {message}
-        </div>
-        <Suspense fallback={mapLoading}><MapView origin={origin} destination={destination} /></Suspense>
-      </section>}
-      {stage === 'pick' && <section>
-        <h1 ref={title} tabIndex={-1}>지도에서 {field === 'origin' ? '출발지' : '목적지'} 선택</h1>
-        <p>서울 안의 지점을 눌러 선택하세요. 장소 이름으로도 검색할 수 있어요.</p>
-        <Suspense fallback={mapLoading}>
-          <MapView origin={field === 'origin' && draftPoint ? selectedPlace(draftPoint, 'map') : origin}
-            destination={field === 'destination' && draftPoint ? selectedPlace(draftPoint, 'map') : destination}
-            onPick={setDraftPoint} />
-        </Suspense>
-        <div className="button-row pick-actions">
-          <button className="button filled" disabled={!draftPoint} onClick={() => draftPoint && void choose(selectedPlace(draftPoint, 'map'))}>이 위치 사용</button>
-          <button className="button outlined" onClick={() => go('search')}>장소 검색으로 돌아가기</button>
-        </div>
-      </section>}
-      {stage === 'confirm' && <section className="route-screen">
+      {stage === 'confirm' && <section className="route-screen input-screen">
         <header className="trip-bar">
           {backButton('home')}
-          <div><h1 ref={title} tabIndex={-1}>경로 확인</h1><p>{destination?.name ?? '목적지를 선택해 주세요'}</p></div>
-          {destination && <button className="button outlined" onClick={() => { setDemo(false); edit('destination'); }}>목적지 변경</button>}
+          <div><h1 ref={title} tabIndex={-1}>출발지와 목적지</h1></div>
         </header>
-        <div className="workspace">
-          <Suspense fallback={mapLoading}>
-            <MapView origin={origin} destination={destination} />
-          </Suspense>
-          <div className="panel confirm-panel">
-            <div className="destination-summary">
-              <h2>{destination?.name ?? '목적지를 선택해 주세요'}</h2>
-              {destination?.address && <p>{destination.address}</p>}
-            </div>
-            <div className="confirm-row">
-              <div><span className="meta">출발지</span><strong>{origin?.name ?? '선택해 주세요'}</strong>
-                {origin?.address && <small>{origin.address}</small>}</div>
-              <button className="button outlined" onClick={() => { setDemo(false); edit('origin'); }}>출발지 {origin ? '변경' : '선택'}</button>
-            </div>
-            <div className="button-row">
-              <button className="button filled" disabled={busy === 'route'} onClick={() => void calculate()}>
-                {origin && !destination ? '목적지 선택하기' : '여기로 길찾기'}
-              </button>
-              {busy === 'route' && <button className="button outlined" onClick={cancel}>계산 취소</button>}
-            </div>
-            {message}
+        <div className="route-inputs">
+          {([['origin', '출발지', origin, originButton], ['destination', '목적지', destination, destinationButton]] as const)
+            .map(([id, label, place, button]) => <button type="button" key={id} className="place-field" ref={button}
+              aria-expanded={editingPlace && field === id} onClick={() => editingPlace && field === id ? closeEditor() : edit(id)}>
+              <span className={`place-dot place-dot--${id}`} aria-hidden="true" />
+              <strong>{label}</strong>
+              <span>{place?.name ?? '입력하기'}{place?.address && <small>{place.address}</small>}</span>
+              <span aria-hidden="true">›</span>
+            </button>)}
+          <button type="button" className="button outlined current-origin" disabled={busy === 'locate'}
+            onClick={() => { setDemo(false); locate((point) => void choose(selectedPlace(point, 'device'), 'origin')); }}>
+            현재 위치를 출발지로
+          </button>
+          {editingPlace && <div className="inline-search" onKeyDown={(event) => {
+            if (event.key === 'Escape') { event.preventDefault(); closeEditor(); }
+          }}>
+            <PlaceSearch key={field} field={field} onSelect={(place) => { setDemo(false); void choose(place); }}
+              onPick={() => { setDraftPoint(null); setEditingPlace(false); setPickingOnMap(true); }} />
+          </div>}
+          {pickingOnMap && <p className="pick-instruction">지도에서 {field === 'origin' ? '출발지' : '목적지'}를 눌러 주세요.</p>}
+          {message}
+        </div>
+        <Suspense fallback={mapLoading}>
+          <MapView origin={pickingOnMap && field === 'origin' && draftPoint ? selectedPlace(draftPoint, 'map') : origin}
+            destination={pickingOnMap && field === 'destination' && draftPoint ? selectedPlace(draftPoint, 'map') : destination}
+            onPick={pickingOnMap ? setDraftPoint : undefined} />
+        </Suspense>
+        <div className="route-input-footer">
+          {pickingOnMap ? <div className="button-row">
+            <button className="button filled main-action" disabled={!draftPoint}
+              onClick={() => { if (draftPoint) { setDemo(false); void choose(selectedPlace(draftPoint, 'map')); } }}>이 위치 사용</button>
+            <button className="button outlined" onClick={() => edit(field)}>지도 선택 취소</button>
+          </div> : <>
+            <button className="button filled main-action" disabled={busy === 'route'} onClick={() => void calculate()}>경로 확인하기</button>
+            {busy === 'route' && <button className="button outlined" onClick={cancel}>계산 취소</button>}
             <details className="time-options">
               <summary>기상 시각 · {formatKst(dateTimeFromKst(inputTime) || currentHour())}</summary>
               <label className="time-field">기상 적용 시각 (한국 시간)
                 <input type="datetime-local" value={inputTime} step="3600" min="2022-01-02T00:00"
                   max={localInput(now + 24 * hourMs)} onChange={(event) => { setDemo(false); setInputTime(event.target.value); }} />
               </label>
-              <p className="meta">현재부터 24시간 뒤까지의 예보 또는 과거 정각을 선택할 수 있어요.</p>
+              <p>과거 또는 앞으로 24시간까지의 정각을 선택하세요.</p>
             </details>
-          </div>
+          </>}
         </div>
       </section>}
       {stage === 'results' && result && <section className={guidanceMode === 'idle' ? 'route-screen route-screen--results' : 'route-screen route-screen--guidance'}>
         <header className="trip-bar result-heading" hidden={guidanceMode !== 'idle'}>
-          {backButton('confirm')}
+          {backButton('confirm', '출발지와 목적지 수정')}
           <div><h1 ref={title} tabIndex={-1}>경로 결과</h1><p>{origin?.name} → {destination?.name}</p></div>
-          <button className="button outlined" onClick={() => go('confirm')}>입력 수정</button>
         </header>
         <div className="guidance-top" ref={setInstructionPortal} />
         <div className="workspace">
@@ -454,7 +449,7 @@ export function App() {
             guidanceMode={guidanceMode} onModeChange={setGuidanceMode} onPositionChange={setGuidePosition} />
         </div>
       </section>}
-      {stage !== 'home' && stage !== 'confirm' && stage !== 'search' && message}
+      {stage !== 'home' && stage !== 'confirm' && message}
     </main>
   </>;
 }

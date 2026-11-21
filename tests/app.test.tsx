@@ -5,7 +5,8 @@ import { App } from '../src/app/App';
 
 it('moves keyboard focus to a labeled destination search', () => {
   render(<App />);
-  fireEvent.click(screen.getByRole('button', { name: /어디로 가세요/ }));
-  expect(document.activeElement).toBe(screen.getByRole('heading', { name: '목적지 선택' }));
-  expect(screen.getByRole('searchbox', { name: '목적지 검색' })).toBeDefined();
+  fireEvent.click(screen.getByRole('button', { name: '목적지 입력하기' }));
+  expect(document.activeElement).toBe(screen.getByRole('heading', { name: '출발지와 목적지' }));
+  fireEvent.click(screen.getByRole('button', { name: /^목적지.*입력/ }));
+  expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: '목적지 검색' }));
 });

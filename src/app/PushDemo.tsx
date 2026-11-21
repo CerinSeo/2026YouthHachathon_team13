@@ -124,8 +124,7 @@ export function PushDemo() {
 
   return <section className="panel notification-settings" aria-labelledby="notification-settings-title">
     <h2 id="notification-settings-title">잠금화면 결빙 알림 시연</h2>
-    <p>양재역에서 양재동우체국까지 자주 걷는 상황을 가정해요. 알림을 켜면 10분마다 1시간 동안 기기에 발송해요.</p>
-    <p className="meta">아이폰은 Safari에서 공유 → 홈 화면에 추가를 선택한 뒤, 추가한 앱에서 알림을 켜 주세요.</p>
+    <p>10분마다, 1시간 동안 보내요.</p>
     {setup && <div className="button-row">
       {session ? <>
         <button className="button filled" disabled={busy} onClick={() => void manage('test')}>양재 예시 알림 보내기</button>
@@ -133,5 +132,9 @@ export function PushDemo() {
       </> : <button className="button filled" disabled={busy} onClick={() => void enable()}>기기 알림 켜기</button>}
     </div>}
     <p role="status" className="meta">{message || (busy && !setup ? '알림을 준비하고 있어요…' : '')}</p>
+    <details className="notification-help">
+      <summary>아이폰에서 알림 받기</summary>
+      <p>Safari에서 공유 → 홈 화면에 추가. 추가한 앱을 열고 알림을 켜세요.</p>
+    </details>
   </section>;
 }

@@ -226,9 +226,7 @@ export function RouteGuidance({ route, risks, live, instructionPortal, destinati
       {mode === 'preview' && positionMessage && <p className="meta">{positionMessage}</p>}
       {mode === 'tracking' && <>
         {destination && <h2>{destination}까지</h2>}
-        {remaining === null ? <p>현재 위치를 확인한 뒤 남은 거리와 시간을 표시해요.</p> :
-          <p className="remaining"><strong>{duration(remaining)}</strong> · {distanceLabel(remaining)} 남음</p>}
-        <p className="meta">갈림길에서는 실제 보행로와 표지판을 확인해 주세요.</p>
+        {remaining !== null && <p className="remaining"><strong>{duration(remaining)}</strong> · {distanceLabel(remaining)} 남음</p>}
       </>}
       {mode === 'arrived' && <h2>{destination ?? '목적지'} 근처에 도착했어요</h2>}
       {speechError && <p className="meta" role="status">음성을 재생하지 못했어요. 기기의 한국어 음성 설정을 확인해 주세요.</p>}

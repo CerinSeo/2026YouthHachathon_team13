@@ -6,20 +6,20 @@ import { searchPlaces } from '../services/api';
 interface Props {
   field: 'origin' | 'destination';
   onSelect: (place: Place) => void;
-  onLocate?: () => void;
   onPick: () => void;
-  originLabel?: string;
-  onEditOrigin?: () => void;
 }
 
-export function PlaceSearch({ field, onSelect, onLocate, onPick, originLabel, onEditOrigin }: Props) {
+export function PlaceSearch({ field, onSelect, onPick }: Props) {
   const name = field === 'origin' ? '출발지' : '목적지';
   const [query, setQuery] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [places, setPlaces] = useState<Place[]>([]);
   const active = useRef<AbortController>(null);
   const input = useRef<HTMLInputElement>(null);
-  useEffect(() => () => active.current?.abort(), []);
+  useEffect(() => {
+    input.current?.focus();
+    return () => active.current?.abort();
+  }, []);
 
   async function search(term: string) {
     if (!term.trim()) return;
@@ -62,15 +62,13 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick, originLabel, on
       </div>
     </form>
     <div className="search-shortcuts">
-      {onEditOrigin && <button className="origin-shortcut" type="button" onClick={onEditOrigin}>
-        <span className="location-glyph" aria-hidden="true" /><span>출발지 · {originLabel ?? '선택해 주세요'}</span>
-      </button>}
-      {onLocate && <button className="button outlined" onClick={onLocate}>현재 위치 쓰기</button>}
       <button className="button outlined" onClick={onPick}>지도에서 선택</button>
     </div>
     <div role="status" aria-live="polite" className="search-status">
       {state === 'loading' && <p>장소를 찾고 있어요…</p>}
-      {state === 'done' && <p>{places.length ? `검색 결과 ${places.length}곳` : '검색 결과가 없어요. 장소명이나 주소를 다시 확인해 주세요.'}</p>}
+      {state === 'done' && (places.length
+        ? <p className="sr-only">{`검색 결과 ${places.length}곳`}</p>
+        : <p>검색 결과가 없어요. 다른 이름이나 주소를 입력해 주세요.</p>)}
     </div>
     {state === 'error' && <div role="alert" className="notice error">
       <p>장소를 검색하지 못했어요. 다시 시도하거나 지도에서 선택해 주세요.</p>
@@ -81,7 +79,7 @@ export function PlaceSearch({ field, onSelect, onLocate, onPick, originLabel, on
         <button onClick={() => onSelect(place)}>
           <span className="list-mark" aria-hidden="true">⌖</span>
           <span><strong>{place.name}</strong>{place.address && <small>{place.address}</small>}</span>
-          <span aria-hidden="true" className="place-select">선택</span>
+          <span aria-hidden="true" className="place-select">›</span>
         </button>
       </li>)}
     </ul>}
