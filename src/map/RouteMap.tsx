@@ -19,9 +19,16 @@ const tileUrl = import.meta.env.VITE_MAP_TILE_URL || 'https://tile.openstreetmap
 const weatherAttribution = '<a href="https://open-meteo.com/">Open-Meteo</a>';
 const latLng = ([x, y]: Coordinate): L.LatLngTuple => [y, x];
 
-const pin = (type: 'start' | 'destination' | 'risk', text: string) => L.divIcon({
-  className: `marker marker--${type}`, html: `<span aria-hidden="true">${text}</span>`,
-  iconSize: [30, 30], iconAnchor: [15, 15],
+const placePin = (type: 'start' | 'destination') => L.divIcon({
+  className: `marker marker--${type}`,
+  html: '<span class="place-pin" aria-hidden="true"></span>',
+  iconSize: [48, 52], iconAnchor: [24, 50], tooltipAnchor: [0, -34],
+});
+
+const riskPin = L.divIcon({
+  className: 'marker marker--risk',
+  html: '<span aria-hidden="true">❄︎</span>',
+  iconSize: [38, 38], iconAnchor: [19, -6],
 });
 
 function label(text: string) {
@@ -105,14 +112,16 @@ export function RouteMap({ origin, destination, result, onPick, location, initia
         normal();
         safe();
       }
-      for (const [index, segment] of result.riskSegments.entries()) {
+      const markedRiskEdges = new Set<string>();
+      for (const segment of result.riskSegments) {
         const [a, b] = segment.geometry;
         L.polyline([latLng(a), latLng(b)], { color: '#FFFFFF', weight: 10, interactive: false }).addTo(group);
         L.polyline([latLng(a), latLng(b)], { color: '#006DB3', weight: 7, dashArray: '3 7' })
           .addTo(group).bindTooltip(label(result.mode === 'historical_replay' ? '과거 예보의 결빙 위험' : '결빙 위험 예상구간'));
-        if (index < 8) {
+        if (markedRiskEdges.size < 8 && !markedRiskEdges.has(segment.edgeId)) {
+          markedRiskEdges.add(segment.edgeId);
           L.marker([(a[1] + b[1]) / 2, (a[0] + b[0]) / 2], {
-            icon: pin('risk', '❄'), keyboard: false, interactive: false,
+            icon: riskPin, keyboard: false, interactive: false,
           }).addTo(group);
         }
       }
@@ -121,11 +130,13 @@ export function RouteMap({ origin, destination, result, onPick, location, initia
       if (!place) continue;
       const position = latLng(place.coordinates);
       points.push(position);
-      L.marker(position, { icon: pin(type, type === 'start' ? '●' : '◆'), title: `${caption} · ${place.name}` })
+      L.marker(position, { icon: placePin(type), title: `${caption} · ${place.name}`, zIndexOffset: 500 })
         .addTo(group).bindTooltip(label(`${caption} · ${place.name}`))
         .on('click', () => pickRef.current?.(place.coordinates));
     }
-    if (points.length > 1) instance.fitBounds(L.latLngBounds(points), { padding: [42, 42], maxZoom: 18, animate: false });
+    if (points.length > 1) instance.fitBounds(L.latLngBounds(points), {
+      paddingTopLeft: [42, 56], paddingBottomRight: [56, 70], maxZoom: 18, animate: false,
+    });
     else if (points.length === 1) instance.setView(points[0], 16, { animate: false });
   }, [origin, destination, result, selected]);
 

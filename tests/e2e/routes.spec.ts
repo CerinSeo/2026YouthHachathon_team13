@@ -141,6 +141,9 @@ test('the device notification link opens the real Yangjae historical comparison'
   await expect(page.getByRole('link', { name: 'Open-Meteo' })).toBeVisible();
   await expect(page.getByRole('radio', { name: /추천 경로/ })).toBeChecked();
   await expect(page.getByText(/결빙 위험 구간 [1-9]/)).toBeVisible();
+  await expect(page.locator('.marker--start .place-pin')).toBeVisible();
+  await expect(page.locator('.marker--destination .place-pin')).toBeVisible();
+  await expect(page.locator('.marker--risk').first()).toHaveText('❄︎');
   await expect(page).toHaveURL('/');
   await page.setViewportSize({ width: 360, height: 800 });
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
@@ -170,7 +173,12 @@ test('live historical demo renders a traceable walking comparison', async ({ pag
   await page.getByRole('button', { name: '경로 확인하기' }).click();
   await expect(page.getByRole('heading', { name: '경로 결과' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/과거 예보 · 결빙 위험/)).toBeVisible();
-  await expect(page.getByText(/과거 기상 재생|기상 기준|기상 시각|더 걸려요/)).toHaveCount(0);
+  await expect(page.getByText(/과거 기상 재생|기상 기준|기상 시각/)).toHaveCount(0);
+  const extraTime = page.getByText(/일반 경로보다 (?:약 [1-9]\d*분|1분 미만) 더 걸려요/);
+  await expect(extraTime).toBeVisible();
+  await page.getByRole('radio', { name: /일반 경로/ }).check();
+  await expect(extraTime).toHaveCount(0);
+  await page.getByRole('radio', { name: /추천 경로/ }).check();
   await expect(page.getByRole('link', { name: 'Open-Meteo' })).toBeVisible();
   await expect(page.getByRole('radio', { name: /추천 경로/ })).toBeVisible();
   await expect(page.getByRole('radio', { name: /일반 경로/ })).toBeVisible();
@@ -178,6 +186,7 @@ test('live historical demo renders a traceable walking comparison', async ({ pag
   await expect(page.getByText(/강수량|결빙 점수|임계값/)).toHaveCount(0);
   await page.getByRole('button', { name: '경로 단계 보기' }).click();
   await expect(page.getByRole('heading', { name: '경로 단계' })).toBeFocused();
+  await expect(extraTime).toBeVisible();
   await expect(page.locator('.guidance-top').getByRole('button', { name: '다시 듣기' })).toBeVisible();
   await page.getByRole('button', { name: '다시 듣기' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-spoken', /^ko-KR .+/);

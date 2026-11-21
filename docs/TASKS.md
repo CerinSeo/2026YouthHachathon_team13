@@ -71,7 +71,7 @@ TODO → IN_PROGRESS → BLOCKED 또는 DONE
 | `T-012` | 추천 경로 | T-007,T-010,T-011 | 회피 간선 제외, 연결 실패, 후검증 | `feat(route): compute recommended walking route` | DONE |
 | `T-013` | 비교 계약 | T-007,T-012 | 동일 1m/s 산식, 추가시간, 부분 결과 | `feat(core): assemble route comparison result` | DONE |
 | `T-014` | 디자인 토큰·기본 화면 | T-001 | DESIGN HEX·타입·48dp·큰 글자 구조 적용 | `feat(ui): add accessible Material 3 shell` | DONE |
-| `T-015` | 지도·결과 UI | T-013,T-014 | 일반·추천·위험을 색+선+문구로 구분 | `feat(ui): render route comparison map` | DONE |
+| `T-015` | 지도·결과 UI | T-013,T-014 | 일반·추천·위험을 색+선+문구로 구분, 큰 출발·목적지 핀과 눈꽃 배지, 결과·안내에서 추천 경로 추가시간 표시 | `feat(ui): render route comparison map` | DONE |
 | `T-016` | 오류·자료 부족 UI | T-013,T-014 | 입력·지역 밖·자료 부족·추천 없음 구분 | `feat(ui): handle route result states` | DONE |
 | `T-017` | S-01 고정 시연 | T-005~T-016 | 좌표·데이터·보행망 버전 고정, 우회 효과 확인 | `test(demo): verify Yangjae historical scenario` | DONE |
 | `T-018` | 서울 복수 생활권 검증 | T-012 | 후보 2곳 이상 동일 규칙, 차도 혼입 없음 | `test(route): verify Seoul-wide walking routes` | DONE |

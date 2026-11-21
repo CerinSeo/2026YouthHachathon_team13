@@ -43,6 +43,7 @@ function RouteResults({ result, now, onRetry, selected, onSelect, guidanceMode, 
 }) {
   const { baseline, recommendation } = result;
   const details = selected === 'safe' ? recommendation.route : baseline;
+  const extraSeconds = selected === 'safe' ? recommendation.additionalSeconds : null;
   const riskCount = new Set(result.riskSegments.map((segment) => segment.edgeId)).size;
   return <section id="route-summary" tabIndex={-1} className="result-sheet" aria-label="경로 요약">
     <div className="comparison" hidden={guidanceMode !== 'idle'}>
@@ -75,6 +76,8 @@ function RouteResults({ result, now, onRetry, selected, onSelect, guidanceMode, 
           ? `과거 예보 · 결빙 위험 구간 ${riskCount}곳`
           : riskCount ? `일반 경로 · 결빙 위험 예상 ${riskCount}곳` : '예보상 결빙 위험 구간이 없어요.'}</p>}
     </div>
+    {extraSeconds !== null && extraSeconds > 0 && guidanceMode !== 'arrived' &&
+      <p className="route-extra-time">일반 경로보다 <strong>{duration(extraSeconds)} 더 걸려요</strong></p>}
     {details && <RouteGuidance key={selected} route={details} risks={result.riskSegments}
       live={result.mode === 'current' && Date.parse(result.selectedAt) === now}
       instructionPortal={instructionPortal} destination={destination} onModeChange={onModeChange} onPositionChange={onPositionChange} />}

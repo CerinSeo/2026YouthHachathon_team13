@@ -172,10 +172,20 @@ p, h1, h2, small, strong { overflow-wrap: anywhere; }
 .map .leaflet-tile-pane { filter: saturate(.67); }
 .map .leaflet-tooltip { font-size: 1rem; color: var(--text); font-weight: bold; }
 .map-notice { padding: .5rem .75rem; margin: 0; }
-.marker { display: grid; place-items: center; background: var(--white); border: 2px solid currentColor; border-radius: 100%; color: var(--primary); }
-.marker span { line-height: 1; font-size: 1rem; }
+.marker--start { color: var(--primary); }
 .marker--destination { color: #C53B2D; }
-.marker--risk { color: #006DB3; }
+.marker:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; border-radius: .75rem; }
+.place-pin { position: absolute; top: 9px; left: 7px; width: 34px; height: 34px;
+  transform: rotate(-45deg); border: 2px solid var(--white); border-radius: 50% 50% 50% 0;
+  background: currentColor; box-shadow: 0 2px 5px #102A5670; }
+.place-pin::after { content: ''; position: absolute; inset: 8px; border-radius: 50%; background: var(--white); }
+.marker--destination .place-pin::after { border-radius: 2px; }
+.marker--risk { border: 2px solid var(--white); border-radius: 50%;
+  background: #006DB3; color: var(--white); box-shadow: 0 2px 5px #102A5670; }
+.marker--risk::before { content: ''; position: absolute; top: -8px; left: calc(50% - 1px);
+  width: 2px; height: 7px; background: #006DB3; }
+.marker--risk span { position: absolute; inset: 0; display: grid; place-items: center;
+  font: 700 26px/1 system-ui, sans-serif; }
 
 .guidance-preferences summary, .notification-help summary {
   cursor: pointer; min-height: 48px; padding-block: .6rem; color: var(--text); }
@@ -200,6 +210,9 @@ p, h1, h2, small, strong { overflow-wrap: anywhere; }
 .legend-line.dashed { border-top: 4px dashed #65778A; }
 .risk-summary { display: flex; align-items: baseline; gap: .45rem; font-size: 1.125rem; font-weight: 750; }
 .risk-summary span { color: #006DB3; }
+.route-extra-time { margin: .65rem 0; padding: .6rem .8rem; border-radius: .75rem;
+  background: var(--primary-container); color: var(--on-primary-container); font-size: 1.125rem; }
+.route-extra-time strong { font-size: 1.2em; }
 .guidance-top:empty { display: none; }
 .guidance-banner { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem;
   background: var(--primary); color: var(--on-primary); border-radius: 1rem; padding: .75rem 1rem; }
