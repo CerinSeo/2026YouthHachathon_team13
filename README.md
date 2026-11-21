@@ -74,6 +74,25 @@ Azure App Service에 배포할 때는 `npm run build:azure`로 `dist/azure-app`�
 정적 화면과 `/api/*`를 제공합니다. `TMAP_APP_KEY`는 App Service의 서버 환경
 변수로 설정합니다.
 
+잠금화면 결빙 알림 시연을 Azure에 구성할 때는 기존 App Service와 같은 지역에
+Azure Logic Apps(Consumption)를 연결합니다. 아래 명령은 웹 푸시 발송 키와
+예약 호출 인증 정보를 Azure 설정에 보관합니다. Microsoft.Logic 리소스
+공급자가 등록된 구독에서 실행합니다. 준비된 배포 디렉터리에 서버 의존성도
+설치한 뒤 Azure에 배포합니다.
+
+```text
+npm ci --prefix azure
+node scripts/setup-azure-push.mjs <리소스-그룹> <웹-앱>
+npm run build:azure
+npm ci --omit=dev --prefix dist/azure-app
+node --test azure/push.test.mjs
+```
+
+예약은 참여 기기가 알림을 켤 때만 실행되며 10분 간격으로 1시간 동안 발송합니다.
+발송용 구독 정보는 기존 단일 App Service의 쓰기 가능한 `/home/data`에 저장하며,
+시연을 끄거나 마지막 알림을 발송하면 삭제합니다. 지연된 시연의 만료 상태는 다음
+요청에서 정리합니다. iOS에서는 홈 화면에 추가한 앱에서 기기 알림을 허용합니다.
+
 ```text
 npm run lint
 npm run typecheck

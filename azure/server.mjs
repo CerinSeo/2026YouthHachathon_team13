@@ -4,13 +4,16 @@ import { createServer } from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleRequest } from './worker.js';
+import { createPushHandler } from './push.mjs';
 
 const publicRoot = fileURLToPath(new URL('./public', import.meta.url));
+const handlePush = createPushHandler(process.env);
 const mime = {
   '.html': 'text/html; charset=UTF-8',
   '.js': 'text/javascript; charset=UTF-8',
   '.css': 'text/css; charset=UTF-8',
   '.json': 'application/json; charset=UTF-8',
+  '.webmanifest': 'application/manifest+json; charset=UTF-8',
   '.sha256': 'text/plain; charset=UTF-8',
   '.png': 'image/png',
 };
@@ -19,6 +22,10 @@ async function serve(request, response) {
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   const url = new URL(request.url, 'http://localhost');
+  if (url.pathname.startsWith('/api/push/')) {
+    await handlePush(request, response, url);
+    return;
+  }
   if (url.pathname.startsWith('/api/')) {
     const upstream = await handleRequest(new Request(url, { method: request.method }), {
       TMAP_APP_KEY: process.env.TMAP_APP_KEY,

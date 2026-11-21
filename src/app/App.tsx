@@ -1,18 +1,15 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { type Coordinate, type Place, type RouteComparison, RouteError, type RouteRequest } from '../core/contracts';
 import { compareRoutes, routeMetadata } from '../core/routing';
 import { inCity } from '../core/geo';
 import { PlaceSearch } from './PlaceSearch';
+import { PushDemo } from './PushDemo';
 import { RouteGuidance } from './RouteGuidance';
 import { currentHour, dateTimeFromKst, distanceLabel, duration, formatKst, hourMs, localInput, weatherMode } from './time';
 import { searchPlaces } from '../services/api';
 
 const MapView = lazy(() => import('../map/RouteMap').then((module) => ({ default: module.RouteMap })));
 const demoTime = '2026-02-02T13:00';
-const notificationIntervalMs = 10 * 60_000;
-const notificationTime = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul', hour: 'numeric', minute: '2-digit',
-});
 const demoCases = {
   yangjae: { origin: '양재역 4번출구', destination: '양재동우체국' },
   hyehwa: { origin: '혜화역 3번출구', destination: '서울대학교병원 동문' },
@@ -99,11 +96,8 @@ export function App() {
   const [busy, setBusy] = useState<'route' | 'demo' | 'locate' | null>(null);
   const [result, setResult] = useState<RouteComparison | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<'safe' | 'normal'>('safe');
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationAt, setNotificationAt] = useState<number | null>(null);
   const active = useRef<AbortController>(null);
   const title = useRef<HTMLHeadingElement>(null);
-  const notificationPreview = useRef<HTMLButtonElement>(null);
   const focusStage = useRef(false);
   const version = useRef(0);
   useEffect(() => {
@@ -114,11 +108,17 @@ export function App() {
     const timer = window.setInterval(() => setNow(currentHour()), 30_000);
     return () => { window.clearInterval(timer); active.current?.abort(); };
   }, []);
+  const openNotificationRoute = useEffectEvent(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('notice') !== 'icing-demo') return;
+    url.searchParams.delete('notice');
+    window.history.replaceState(window.history.state, '', url);
+    void applyDemo('yangjae', true);
+  });
   useEffect(() => {
-    if (!notificationsEnabled) return;
-    const timer = window.setInterval(() => setNotificationAt(Date.now()), notificationIntervalMs);
-    return () => window.clearInterval(timer);
-  }, [notificationsEnabled]);
+    const timer = window.setTimeout(openNotificationRoute, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function go(next: Stage) {
     active.current?.abort();
@@ -229,7 +229,6 @@ export function App() {
         setDestination(request.destination);
         setInputTime(demoTime);
         setDemo(true);
-        setNotificationAt(null);
       }
       setResult(next);
       setSelectedRoute(next.recommendation.route ? 'safe' : 'normal');
@@ -273,17 +272,7 @@ export function App() {
           <div><h2>과거 기상으로 경로 비교</h2><p>2026년 2월 2일 오후 1시의 양재역 주변 예보를 확인해 보세요.</p></div>
           <button className="button outlined" onClick={() => void applyDemo('yangjae')} disabled={busy === 'demo'}>양재 시연 열기</button>
         </section>
-        <section className="panel notification-settings" aria-labelledby="notification-settings-title">
-          <h2 id="notification-settings-title">결빙 알림 시연</h2>
-          <p>앱을 보는 동안 10분마다 시연 알림을 볼 수 있어요. 양재역에서 양재동우체국까지 자주 걷는 상황을 가정해요.</p>
-          <div className="button-row">
-            <button className="button filled" onClick={() => {
-              setNotificationsEnabled(!notificationsEnabled);
-              if (notificationsEnabled) setNotificationAt(null);
-            }}>{notificationsEnabled ? '10분 알림 끄기' : '10분 알림 켜기'}</button>
-            <button ref={notificationPreview} className="button outlined" onClick={() => setNotificationAt(Date.now())}>지금 시험하기</button>
-          </div>
-        </section>
+        <PushDemo />
         <details className="other-demos">
           <summary>다른 과거 시연 경로</summary>
           <div className="button-row">
@@ -355,25 +344,6 @@ export function App() {
         {busy === 'route' ? '실제 기상과 보행로를 확인하고 있어요…' : busy === 'demo' ? '시연 장소를 찾고 있어요…' : '현재 위치를 확인하고 있어요…'}
       </p>}
       {error && <p role="alert" className="notice error">{error}</p>}
-      <div className={notificationAt === null ? undefined : 'notification-demo panel'}>
-        <div role="status" aria-atomic="true">
-          {notificationAt !== null && <>
-            <p className="meta">시연 알림 · {notificationTime.format(notificationAt)}</p>
-            <h2>자주 다니는 길에 결빙이 예상돼요</h2>
-            <p>과거 기상으로 재현한 알림이에요. 안전 경로를 확인해 보세요.</p>
-          </>}
-        </div>
-        {notificationAt !== null && <div className="button-row">
-          <button className="button filled" disabled={busy !== null} onClick={() => {
-            go('home');
-            void applyDemo('yangjae', true);
-          }}>안전 경로 확인</button>
-          <button className="button outlined" aria-label="시연 알림 닫기" onClick={() => {
-            setNotificationAt(null);
-            (notificationPreview.current ?? title.current)?.focus();
-          }}>닫기</button>
-        </div>}
-      </div>
     </main>
   </>;
 }
