@@ -57,25 +57,25 @@ TODO → IN_PROGRESS → BLOCKED 또는 DONE
 
 | ID | 작업 | 의존성 | 완료 조건 | 커밋 예시 | 상태 |
 |---|---|---|---|---|---|
-| `T-001` | 저장소와 실행 명령 | 없음 | install/dev/lint/typecheck/test/build가 실제 동작 | `chore(repo): initialize hackathon workspace` | TODO |
-| `T-002` | Worker와 secrets 구조 | T-001 | 키 비노출, 누락·timeout·공급자 오류 구분 | `chore(worker): configure external API proxy` | TODO |
-| `T-003` | 서울 보행 타일 빌드 | T-001 | PBF 출처·시각·index·SHA-256과 타일 생성 | `feat(data): build Seoul walking tiles` | TODO |
-| `T-004` | 타일 로더·그래프 | T-003 | 해시 검증, 중복 제거, 방향·접근 태그 보존 | `feat(graph): load verified walking tiles` | TODO |
-| `T-005` | TMAP 장소 검색 | T-002 | 실제 장소·입구 좌표, 실패 시 임의 좌표 없음 | `feat(search): add TMAP place search` | TODO |
-| `T-006` | 서울 범위·80m 스냅 | T-004,T-005 | 안/밖·스냅 실패·같은 노드 상태 구분 | `feat(input): validate and snap route endpoints` | TODO |
-| `T-007` | 일반 Dijkstra 경로 | T-004,T-006 | 실제 서울 좌표, 간선 ID·형상·거리·시간 | `feat(route): compute baseline walking route` | TODO |
-| `T-008` | 실제 기상 어댑터 | T-002 | 현재·과거 자료, 출처·유효 시각·결측 상태 | `feat(weather): load real hourly weather` | TODO |
-| `T-009` | 건물 그늘·보행교 | T-004,T-008 | 검증 가능한 공간 근거만 위험 후보로 사용 | `feat(risk): detect exposed bridge and shade edges` | TODO |
-| `T-010` | `risk-rule-v1` | T-008,T-009 | 0°C·6시간 수분·UNKNOWN 규칙 테스트 | `feat(risk): classify icing expected edges` | TODO |
-| `T-011` | 계단·경사 회피 집합 | T-004 | 미기록/없음 구분, 태그 규칙 테스트 | `feat(route): identify step and incline edges` | TODO |
-| `T-012` | 추천 경로 | T-007,T-010,T-011 | 회피 간선 제외, 연결 실패, 후검증 | `feat(route): compute recommended walking route` | TODO |
-| `T-013` | 비교 계약 | T-007,T-012 | 동일 1m/s 산식, 추가시간, 부분 결과 | `feat(core): assemble route comparison result` | TODO |
-| `T-014` | 디자인 토큰·기본 화면 | T-001 | DESIGN HEX·타입·48dp·큰 글자 구조 적용 | `feat(ui): add accessible Material 3 shell` | TODO |
-| `T-015` | 지도·결과 UI | T-013,T-014 | 일반·추천·위험을 색+선+문구로 구분 | `feat(ui): render route comparison map` | TODO |
-| `T-016` | 오류·자료 부족 UI | T-013,T-014 | 입력·지역 밖·자료 부족·추천 없음 구분 | `feat(ui): handle route result states` | TODO |
-| `T-017` | S-01 고정 시연 | T-005~T-016 | 좌표·데이터·보행망 버전 고정, 우회 효과 확인 | `test(demo): verify Yangjae historical scenario` | TODO |
-| `T-018` | 서울 복수 생활권 검증 | T-012 | 후보 2곳 이상 동일 규칙, 차도 혼입 없음 | `test(route): verify Seoul-wide walking routes` | TODO |
-| `T-019` | 종단·접근성 핵심 QA | T-015~T-018 | TESTING 최종 체크와 시연 순서 완료 | `test(e2e): verify hackathon demo flow` | TODO |
+| `T-001` | 저장소와 실행 명령 | 없음 | install/dev/lint/typecheck/test/build가 실제 동작 | `chore(repo): initialize hackathon workspace` | DONE |
+| `T-002` | Worker와 secrets 구조 | T-001 | 키 비노출, 누락·timeout·공급자 오류 구분 | `chore(worker): configure external API proxy` | DONE |
+| `T-003` | 서울 보행 타일 빌드 | T-001 | PBF 출처·시각·index·SHA-256과 타일 생성 | `feat(data): build Seoul walking tiles` | DONE |
+| `T-004` | 타일 로더·그래프 | T-003 | 해시 검증, 중복 제거, 방향·접근 태그 보존 | `feat(graph): load verified walking tiles` | DONE |
+| `T-005` | TMAP 장소 검색 | T-002 | 실제 장소·입구 좌표, 실패 시 임의 좌표 없음 | `feat(search): add TMAP place search` | DONE |
+| `T-006` | 서울 범위·80m 스냅 | T-004,T-005 | 안/밖·스냅 실패·같은 노드 상태 구분 | `feat(input): validate and snap route endpoints` | DONE |
+| `T-007` | 일반 Dijkstra 경로 | T-004,T-006 | 실제 서울 좌표, 간선 ID·형상·거리·시간 | `feat(route): compute baseline walking route` | DONE |
+| `T-008` | 실제 기상 어댑터 | T-002 | 현재·과거 자료, 출처·유효 시각·결측 상태 | `feat(weather): load real hourly weather` | DONE |
+| `T-009` | 건물 그늘·보행교 | T-004,T-008 | 검증 가능한 공간 근거만 위험 후보로 사용 | `feat(risk): detect exposed bridge and shade edges` | DONE |
+| `T-010` | `risk-rule-v1` | T-008,T-009 | 0°C·6시간 수분·UNKNOWN 규칙 테스트 | `feat(risk): classify icing expected edges` | DONE |
+| `T-011` | 계단·경사 회피 집합 | T-004 | 미기록/없음 구분, 태그 규칙 테스트 | `feat(route): identify step and incline edges` | DONE |
+| `T-012` | 추천 경로 | T-007,T-010,T-011 | 회피 간선 제외, 연결 실패, 후검증 | `feat(route): compute recommended walking route` | DONE |
+| `T-013` | 비교 계약 | T-007,T-012 | 동일 1m/s 산식, 추가시간, 부분 결과 | `feat(core): assemble route comparison result` | DONE |
+| `T-014` | 디자인 토큰·기본 화면 | T-001 | DESIGN HEX·타입·48dp·큰 글자 구조 적용 | `feat(ui): add accessible Material 3 shell` | DONE |
+| `T-015` | 지도·결과 UI | T-013,T-014 | 일반·추천·위험을 색+선+문구로 구분 | `feat(ui): render route comparison map` | DONE |
+| `T-016` | 오류·자료 부족 UI | T-013,T-014 | 입력·지역 밖·자료 부족·추천 없음 구분 | `feat(ui): handle route result states` | DONE |
+| `T-017` | S-01 고정 시연 | T-005~T-016 | 좌표·데이터·보행망 버전 고정, 우회 효과 확인 | `test(demo): verify Yangjae historical scenario` | DONE |
+| `T-018` | 서울 복수 생활권 검증 | T-012 | 후보 2곳 이상 동일 규칙, 차도 혼입 없음 | `test(route): verify Seoul-wide walking routes` | DONE |
+| `T-019` | 종단·접근성 핵심 QA | T-015~T-018 | TESTING 최종 체크와 시연 순서 완료 | `test(e2e): verify hackathon demo flow` | IN_PROGRESS |
 
 ## 6. P1·P2
 
@@ -99,13 +99,21 @@ TODO → IN_PROGRESS → BLOCKED 또는 DONE
 
 | ID | 이용 목적 | KST 시각 | 출발지 | 목적지 | 상태 |
 |---|---|---|---|---|---|
-| `S-01-YANGJAE-AIFS` | 정류장 간 보행 이동 | 2026-02-02 13:00 | 양재역7번출구.한신휴플러스 정류장 | 양재역스포타임앞 정류장 | `FIXED-WEATHER / ROUTE-REVERIFY` |
-| `S-02-HOSPITAL` | 지하철역 → 병원 | 2026-02-02 13:00 | 혜화역 3번 출구 | 서울대학교병원 본관 | `CANDIDATE` |
-| `S-03-WELFARE` | 지하철역 → 복지시설 | 2026-02-02 13:00 | 공덕역 2번 출구 | 마포노인종합복지관 | `CANDIDATE` |
+| `S-01-YANGJAE-AIFS` | 지하철역 → 우체국 | 2026-02-02 13:00 | 양재역 4번 출구 | 양재동우체국 | `VERIFIED` |
+| `S-02-HOSPITAL` | 지하철역 → 병원 출입구 | 2026-02-02 13:00 | 혜화역 3번 출구 | 서울대학교병원 동문 | `VERIFIED` |
+| `S-03-CITY-HALL` | 지하철역 → 공공광장 | 2026-02-02 13:00 | 시청역 5번 출구 | 서울광장 | `VERIFIED` |
 
-S-01은 실제 AIFS 기상 조건이 확인된 기준 시나리오다. 새로 만든 보행 타일과
-TMAP 좌표로 경로·회전·회피 효과를 다시 확인해야 `VERIFIED`가 된다. S-02와 S-03은
-실제 이용성이 있는 고정 장소 후보이며 다음을 모두 통과해야만 시연에 사용한다.
+보행망 기준은 `2026-11-17T21:24:30Z`다. 세 시연 모두 TMAP으로 장소를 조회하고
+동일한 실데이터 보행망과 AIFS 예보를 적용했다.
+
+- 양재 일반 경로 약 342m, 안전 경로 약 438m. 결빙 위험 예상구간 1곳과 우회,
+  일반 경로 4회 및 안전 경로 5회 방향 전환을 확인했다.
+- 혜화 경로 약 217m에 방향 전환 6회, 시청 경로 약 104m에 방향 전환 1회를
+  확인했다. 이 시각 두 생활권에서는 일반 경로와 안전 경로가 같다.
+- 종전 양재 정류장 예시는 현재 보행망에서 우회를 재현할 수 없어 우체국이
+  목적지인 시연으로 바꾸었다.
+
+시연을 변경할 때는 다음 기준을 적용한다.
 
 - TMAP에서 유효한 출입구·장소 좌표 확보
 - 출발지·목적지가 서로 다른 보행 노드에 연결
@@ -114,15 +122,15 @@ TMAP 좌표로 경로·회전·회피 효과를 다시 확인해야 `VERIFIED`�
 - 선택 시각의 실제 기상 자료 확보
 - 최소 하나의 시나리오에서 위험 반영 전후 경로 차이
 
-검증 후 정확한 좌표, 공급자 조회 시각, 보행망 기준 시각, 결과를 이 표 아래에
-기록한다. 검증 실패 시 다른 실제 장소로 교체하되 성공 결과를 만들기 위해 좌표나
-기상값을 조작하지 않는다.
+재검증 후 공급자 조회 시각, 보행망 기준 시각과 경로 결과를 기록한다. 앱은 장소
+좌표를 실시간으로 다시 검색한다.
 
 ## 8. 블로커와 전환 기준
 
 | 시각 | 작업 ID | 블로커 | 영향 | 대안/결정 | 상태 |
 |---|---|---|---|---|---|
-| | | | | | |
+| 2026-11-21 KST | T-002 | 로컬 Cloudflare 모의 런타임에서 공급자 호출 실패 | 로컬 Worker 모의 모드의 실연 장애 | 로컬 Node 전송 계층으로 같은 처리기와 외부 API 검증 | 로컬 대안 적용 |
+| 2026-11-21 KST | T-019 | Android 실기기 확인 미실행 | TalkBack·Switch Access 실기기 검증 미확인 | Chromium 키보드 포커스 및 모바일 200% 글자 크기 확인 | 실기기 미실행 |
 
 - PBF 다운로드·빌드가 50분을 넘으면 원인을 기록하고 필터 범위·출력 크기부터 줄인다.
 - 공개 Overpass 전체 서울 조회를 P0 대안으로 사용하지 않는다.
@@ -133,15 +141,15 @@ TMAP 좌표로 경로·회전·회피 효과를 다시 확인해야 `VERIFIED`�
 ## 9. 최종 체크
 
 - [ ] P0 작업 완료
-- [ ] 기능 단위 커밋과 푸시 완료
-- [ ] 비밀키·원본 민감 응답·원본 PBF 미커밋
-- [ ] 타일 출처·기준 시각·SHA-256 확인
-- [ ] 실제 데이터 출처·유효 시각 확인
-- [ ] 일반·추천 경로 동일 보행 그래프 확인
-- [ ] 자동차 전용·보행 금지·임의 직선 간선 0개
-- [ ] 추천 경로 회피 간선 0개
-- [ ] 서울 복수 생활권 검증
-- [ ] 승인 디자인·접근성 핵심 기준 확인
-- [ ] 내부 지표 UI 비노출
-- [ ] 실제 과거 시나리오 재현
-- [ ] 실패·미실행 테스트 보고
+- [x] 초기 설정·정적 데이터·시연 데이터·앱 구현을 기능 단위로 커밋하고 푸시
+- [x] 비밀키·원본 민감 응답·원본 PBF 미커밋
+- [x] 타일 출처·기준 시각·SHA-256 확인
+- [x] 실제 데이터 출처·유효 시각 확인
+- [x] 일반·추천 경로 동일 보행 그래프 확인
+- [x] 자동차 전용·보행 금지·임의 직선 간선 0개
+- [x] 추천 경로 회피 간선 0개
+- [x] 서울 복수 생활권 검증
+- [x] 승인 디자인과 웹 키보드·확대 기준 확인
+- [x] 내부 지표 UI 비노출
+- [x] 실제 과거 시나리오 재현
+- [x] 실패·미실행 테스트 보고

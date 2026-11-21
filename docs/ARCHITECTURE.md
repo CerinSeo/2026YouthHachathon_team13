@@ -61,6 +61,10 @@ React 19 + TypeScript + Vite
 서버는 전체 경로 계산을 대신하지 않는다. Worker는 비밀키가 필요한 외부 호출과
 오류 정규화만 담당하고, 핵심 분석은 `src/core`에서 실행한다.
 
+`npm run dev`는 로컬 Node 전송 계층으로 같은 API 처리기를 호출한다. 이 환경의
+Cloudflare 모의 런타임에서는 외부 호출이 실패했다. `npm run build`는 배포용
+Worker와 정적 앱을 빌드하며 빌드 결과에 로컬 비밀 설정 파일을 싣지 않는다.
+
 ## 4. 저장소 목표 구조
 
 ```text

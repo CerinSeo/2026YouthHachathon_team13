@@ -48,15 +48,38 @@
 - 위험 계산: 학습 모델이 아닌 규칙 기반 계산
 - 기상청 500m·예보, AWS, 지형 그늘: P0 완료 후 보강
 
-## 실행
+## 로컬 실행
+
+Node.js 22.12 이상, Python 3, curl을 사용합니다. 팀에서 받은 `staticdata/.env.local`은
+작업 환경에 보관합니다. 장소 검색에 필요한 변수는 `TMAP_APP_KEY`입니다.
+`npm run dev`는 `.dev.vars` 또는 `staticdata/.env.local`에서 이 변수를 읽습니다.
 
 ```text
-npm install
+npm ci
+npm run data:build
 npm run dev
+```
+
+`npm run dev`가 표시하는 로컬 주소에서 앱을 열고 **양재 시연 열기**를 선택하세요.
+장소 검색과 현재 기상은 인터넷 연결을 사용합니다. 내장 시연은 보관된 실제 과거
+예보를 재생합니다. 보행망 108개 타일과 행정 경계는 저장소에 포함되어 있습니다.
+
+`npm run dev`는 로컬에서 같은 Worker API 처리기를 Node로 실행합니다.
+현재 개발 환경에서는 Worker 모의 런타임의 외부 호출이 실패해 로컬 실행에 이
+전송 계층을 사용합니다. Cloudflare 빌드는 Worker 진입점을 사용합니다.
+`npm run dev:worker`는 Cloudflare 모의 런타임을 실행하며 `.dev.vars`가 필요합니다.
+
+```text
+npm run lint
+npm run typecheck
 npm run test
 npm run build
-npm run data:build
+npx playwright install chromium
+LIVE_DEMO_TEST=1 npm run test:e2e
+npm run check:secrets
 ```
+
+정적 보행 데이터의 라이선스는 [DATA-NOTICES.md](DATA-NOTICES.md)에 있습니다.
 
 ## 해커톤 운영
 
