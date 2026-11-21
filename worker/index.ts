@@ -15,7 +15,7 @@ const delay = 60 * 60 * 1000;
 const inBounds = ([x, y]: Coordinate) => x >= 126.73 && x <= 127.20 && y >= 37.39 && y <= 37.72;
 
 async function upstream(transport: Transport, url: URL, headers?: HeadersInit): Promise<unknown> {
-  const response = await transport(url, { headers, redirect: 'error', signal: AbortSignal.timeout(9_000) });
+  const response = await transport(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(9_000) });
   if (!response.ok) throw new Error('UPSTREAM_UNAVAILABLE');
   return response.json();
 }

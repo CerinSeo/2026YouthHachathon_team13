@@ -65,9 +65,9 @@ npm run dev
 예보를 재생합니다. 보행망 108개 타일과 행정 경계는 저장소에 포함되어 있습니다.
 
 `npm run dev`는 로컬에서 같은 Worker API 처리기를 Node로 실행합니다.
-현재 개발 환경에서는 Worker 모의 런타임의 외부 호출이 실패해 로컬 실행에 이
-전송 계층을 사용합니다. Cloudflare 빌드는 Worker 진입점을 사용합니다.
 `npm run dev:worker`는 Cloudflare 모의 런타임을 실행하며 `.dev.vars`가 필요합니다.
+Cloudflare에 배포할 때는 `npm run build`가 만든 Worker 구성을 사용하고
+`TMAP_APP_KEY`는 Cloudflare Worker 비밀값으로 등록합니다.
 
 ```text
 npm run lint

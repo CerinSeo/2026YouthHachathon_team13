@@ -129,7 +129,7 @@ TODO → IN_PROGRESS → BLOCKED 또는 DONE
 
 | 시각 | 작업 ID | 블로커 | 영향 | 대안/결정 | 상태 |
 |---|---|---|---|---|---|
-| 2026-11-21 KST | T-002 | 로컬 Cloudflare 모의 런타임에서 공급자 호출 실패 | 로컬 Worker 모의 모드의 실연 장애 | 로컬 Node 전송 계층으로 같은 처리기와 외부 API 검증 | 로컬 대안 적용 |
+| 2026-11-21 KST | T-002 | Cloudflare 런타임이 `redirect: 'error'`를 거부함 | Worker에서 공급자 호출 실패 | `redirect: 'manual'`과 상태 코드 검사 적용 후 실제 TMAP·Open-Meteo 응답 확인 | 해결 |
 | 2026-11-21 KST | T-019 | Android 실기기 확인 미실행 | TalkBack·Switch Access 실기기 검증 미확인 | Chromium 키보드 포커스 및 모바일 200% 글자 크기 확인 | 실기기 미실행 |
 
 - PBF 다운로드·빌드가 50분을 넘으면 원인을 기록하고 필터 범위·출력 크기부터 줄인다.
