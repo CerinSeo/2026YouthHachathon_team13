@@ -4,6 +4,24 @@
 일반 도보 경로와 위험·계단·경사 구간을 회피하는 추천 도보 경로, 예상 추가
 소요시간을 비교하는 6시간 해커톤 프로젝트다.
 
+## 기술 스택
+
+| 영역 | 기술 | 적용 범위 |
+|---|---|---|
+| 프론트엔드 | React 19, TypeScript, Vite | Material 3 기반 반응형 웹 UI |
+| 지도·장소 검색 | Leaflet, OpenStreetMap, TMAP POI API | 지도와 경로 표시, 장소·출입구 검색 |
+| 기상 데이터 | Open-Meteo Forecast·Historical Forecast API, ECMWF AIFS | 현재 기상 조회와 실제 과거 예보 재생 |
+| 서울 보행망 | Geofabrik의 한국 OSM PBF 파생 데이터, Python, SHA-256 | 서울 보행망 구성과 사전 생성 타일 검증 |
+| 경로·결빙 분석 | Dijkstra, 규칙 기반 결빙 추정 | 브라우저에서 일반·추천 도보 경로와 추가 예상시간 계산 |
+| API·배포 | Cloudflare Workers, Wrangler, Node.js 22, Azure App Service | 외부 API 중계, 서버 비밀값 관리, 웹 앱 배포 |
+| 이동 안내·알림 | Geolocation, Web Speech, Vibration, Service Worker, Web Push, Azure Logic Apps | 위치·음성·진동 안내와 결빙 알림 시연 |
+| 테스트·정적 검사 | Vitest, Testing Library, Playwright, ESLint | 단위·컴포넌트·종단 테스트와 코드 검사 |
+
+일반 경로와 추천 경로는 브라우저의 `src/core`에서 같은 서울 보행 그래프로 계산합니다.
+결빙 위험은 실제 기상과 건물 그늘·보행교 정보를 조합해 추정하며, 추천 경로는
+결빙 위험 예상·계단·경사 간선을 제외한 그래프에서 계산합니다.
+[데이터 출처와 분석 방식](docs/DATA_AND_AI.md)
+
 ## 핵심 사용자 경험
 
 1. 사용자가 서울 안의 출발지와 목적지를 선택한다.
@@ -33,20 +51,6 @@
 | `docs/API_CONTRACT.md` | 프론트엔드와 서버 사이의 논리 계약 |
 | `docs/TASKS.md` | 6시간 실행 순서, 결정 사항, 시연 시나리오 |
 | `docs/TESTING.md` | 인수 기준과 실패 방지 검증 |
-
-## 현재 결정 상태
-
-- 제품 범위: 서울 전역, 도보 경로, 로그인 없음
-- 데이터 원칙: 실제 데이터만 사용, 실제 과거 자료 재생 허용
-- UI: `docs/DESIGN.md` 확정, responsive web Material 3로 구현
-- 웹: React 19 + TypeScript + Vite
-- 지도: Leaflet + OpenStreetMap
-- 비밀키 중계: Cloudflare Worker
-- 장소 검색: TMAP
-- 경로: Geofabrik South Korea PBF에서 만든 서울 OSM 보행 타일 + 브라우저 Dijkstra
-- 기상 P0: Open-Meteo Forecast/Historical Forecast, 실제 과거 AIFS 시나리오
-- 위험 계산: 학습 모델이 아닌 규칙 기반 계산
-- 기상청 500m·예보, AWS, 지형 그늘: P0 완료 후 보강
 
 ## 로컬 실행
 

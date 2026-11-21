@@ -77,6 +77,8 @@ TODO → IN_PROGRESS → BLOCKED 또는 DONE
 | `T-018` | 서울 복수 생활권 검증 | T-012 | 후보 2곳 이상 동일 규칙, 차도 혼입 없음 | `test(route): verify Seoul-wide walking routes` | DONE |
 | `T-019` | 종단·접근성 핵심 QA | T-015~T-018 | TESTING 최종 체크와 시연 순서 완료 | `test(e2e): verify hackathon demo flow` | IN_PROGRESS |
 
+README 기술 스택은 실행 환경과 서비스별 역할을 안내하며, T-001의 저장소·실행 문서를 보완한다.
+
 ## 6. P1·P2
 
 ### P1 - P0 완료 후
