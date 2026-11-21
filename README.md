@@ -69,6 +69,11 @@ npm run dev
 Cloudflare에 배포할 때는 `npm run build`가 만든 Worker 구성을 사용하고
 `TMAP_APP_KEY`는 Cloudflare Worker 비밀값으로 등록합니다.
 
+Azure App Service에 배포할 때는 `npm run build:azure`로 `dist/azure-app`을
+만듭니다. Node.js 22에서 `node server.mjs`로 실행하며, 같은 HTTPS 주소에서
+정적 화면과 `/api/*`를 제공합니다. `TMAP_APP_KEY`는 App Service의 서버 환경
+변수로 설정합니다.
+
 ```text
 npm run lint
 npm run typecheck
