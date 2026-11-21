@@ -63,8 +63,8 @@ test('a device opts in, receives test and scheduled pushes, and can cancel futur
 
   assert.equal((await post('test', { id })).status, 200);
   assert.deepEqual(sent[0], {
-    title: '[시연] 양재 도보 경로에 결빙이 예상돼요',
-    body: '양재역 4번 출구 → 양재동우체국. 눌러서 과거 예보로 계산한 추천 경로를 확인하세요.',
+    title: '양재 도보 경로',
+    body: '양재역 4번 출구 → 양재동우체국. 과거 예보로 계산한 추천 경로를 확인하세요.',
   });
   assert.equal((await post('test', { id })).status, 429);
   assert.equal((await post('tick', { id, sequence: 1 })).status, 401);

@@ -9,6 +9,7 @@ interface Props {
   result?: RouteComparison | null;
   onPick?: (coordinates: Coordinate) => void;
   location?: Coordinate | null;
+  initialZoom?: number;
   onLocate?: () => void;
   locating?: boolean;
   selected?: 'safe' | 'normal';
@@ -29,7 +30,7 @@ function label(text: string) {
   return element;
 }
 
-export function RouteMap({ origin, destination, result, onPick, location, onLocate, locating, selected = 'safe' }: Props) {
+export function RouteMap({ origin, destination, result, onPick, location, initialZoom = 12, onLocate, locating, selected = 'safe' }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
@@ -41,7 +42,7 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
 
   useEffect(() => {
     if (!container.current) return;
-    const instance = L.map(container.current, { scrollWheelZoom: false, zoomControl: false }).setView([37.5665, 126.978], 12);
+    const instance = L.map(container.current, { scrollWheelZoom: false, zoomControl: false }).setView([37.5665, 126.978], initialZoom);
     instance.attributionControl.setPrefix(false);
     const tiles = L.tileLayer(tileUrl, {
       maxZoom: 19, attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a>',
@@ -56,7 +57,7 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
     const resize = new ResizeObserver(() => instance.invalidateSize());
     resize.observe(container.current);
     return () => { resize.disconnect(); instance.remove(); map.current = null; layer.current = null; locationMarker.current = null; };
-  }, []);
+  }, [initialZoom]);
 
   useEffect(() => {
     const attribution = map.current?.attributionControl;
@@ -108,7 +109,7 @@ export function RouteMap({ origin, destination, result, onPick, location, onLoca
         const [a, b] = segment.geometry;
         L.polyline([latLng(a), latLng(b)], { color: '#FFFFFF', weight: 10, interactive: false }).addTo(group);
         L.polyline([latLng(a), latLng(b)], { color: '#006DB3', weight: 7, dashArray: '3 7' })
-          .addTo(group).bindTooltip(label('결빙 위험 예상구간'));
+          .addTo(group).bindTooltip(label(result.mode === 'historical_replay' ? '과거 예보의 결빙 위험' : '결빙 위험 예상구간'));
         if (index < 8) {
           L.marker([(a[1] + b[1]) / 2, (a[0] + b[0]) / 2], {
             icon: pin('risk', '❄'), keyboard: false, interactive: false,

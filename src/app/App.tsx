@@ -5,7 +5,7 @@ import { inCity } from '../core/geo';
 import { PlaceSearch } from './PlaceSearch';
 import { PushDemo } from './PushDemo';
 import { RouteGuidance, type GuidanceMode } from './RouteGuidance';
-import { currentHour, dateTimeFromKst, distanceLabel, duration, formatKst, hourMs, localInput, weatherMode } from './time';
+import { currentHour, dateTimeFromKst, distanceLabel, duration } from './time';
 import { searchPlaces } from '../services/api';
 
 const MapView = lazy(() => import('../map/RouteMap').then((module) => ({ default: module.RouteMap })));
@@ -35,21 +35,17 @@ function isYangjaeNotification(params: URLSearchParams) {
   return notice === 'yangjae-demo' || notice === 'icing-demo';
 }
 
-function RouteResults({ result, onRetry, selected, onSelect, guidanceMode, onModeChange, onPositionChange, instructionPortal, destination }: {
+function RouteResults({ result, now, onRetry, selected, onSelect, guidanceMode, onModeChange, onPositionChange, instructionPortal, destination }: {
   result: RouteComparison; onRetry: () => void; selected: 'safe' | 'normal'; onSelect: (route: 'safe' | 'normal') => void;
+  now: number;
   guidanceMode: GuidanceMode; onModeChange: (mode: GuidanceMode) => void; onPositionChange: (point: Coordinate | null) => void;
   instructionPortal: HTMLElement | null; destination: string;
 }) {
   const { baseline, recommendation } = result;
   const details = selected === 'safe' ? recommendation.route : baseline;
   const riskCount = new Set(result.riskSegments.map((segment) => segment.edgeId)).size;
-  const extra = recommendation.additionalSeconds;
   return <section id="route-summary" tabIndex={-1} className="result-sheet" aria-label="경로 요약">
     <div className="comparison" hidden={guidanceMode !== 'idle'}>
-      {result.mode !== 'current' && <div className="weather-time">
-        <strong>{result.mode === 'historical_replay' ? '과거 기상 재생' : '예보 시각'}</strong>
-        <span>{formatKst(result.selectedAt)}</span>
-      </div>}
       {recommendation.status === 'not_evaluated' && <div className="notice warning" role="status">
         <strong>{result.reason === 'weather_failed' ? '기상 정보를 불러오지 못했어요' : '위험 정보를 계산할 자료가 부족해요'}</strong>
         <p>일반 경로만 볼 수 있어요.</p>
@@ -74,23 +70,15 @@ function RouteResults({ result, onRetry, selected, onSelect, guidanceMode, onMod
           <small>{distanceLabel(baseline.distanceM)}</small>
         </label>
       </fieldset>
-      {extra !== null && (extra > 0 || recommendation.status === 'same_as_baseline') &&
-        <p className="time-difference">{extra > 0 ? `일반 경로보다 ${duration(extra)} 더 걸려요` : '두 경로가 같아요.'}</p>}
       {result.dataAsOf && <p className="risk-summary"><span aria-hidden="true">❄</span>
-        {riskCount ? `일반 경로 · 결빙 위험 예상구간 ${riskCount}곳` : '예보상 결빙 위험 구간이 없어요.'}</p>}
+        {result.mode === 'historical_replay'
+          ? `과거 예보 · 결빙 위험 구간 ${riskCount}곳`
+          : riskCount ? `일반 경로 · 결빙 위험 예상 ${riskCount}곳` : '예보상 결빙 위험 구간이 없어요.'}</p>}
     </div>
     {details && <RouteGuidance key={selected} route={details} risks={result.riskSegments}
-      live={result.mode === 'current' && Date.parse(result.selectedAt) === currentHour()}
+      live={result.mode === 'current' && Date.parse(result.selectedAt) === now}
       instructionPortal={instructionPortal} destination={destination} onModeChange={onModeChange} onPositionChange={onPositionChange} />}
-    <div className="comparison-details" hidden={guidanceMode !== 'idle'}>
-      {result.dataAsOf && <p className="surface-note">실제 노면을 확인하세요.</p>}
-      {details && <details className="route-details">
-        <summary>경로 자세히 보기</summary>
-        <p>{result.dataAsOf ? '기상 기준' : '선택 시각'} {formatKst(result.dataAsOf ?? result.selectedAt)}</p>
-        <p>지도에 계단·경사 정보가 빠진 곳이 있을 수 있어요.</p>
-        <p>보행망 기준 {formatKst(result.networkAsOf)}</p>
-      </details>}
-    </div>
+    {result.dataAsOf && guidanceMode === 'idle' && <p className="surface-note">실제 길 상태를 확인하세요.</p>}
   </section>;
 }
 
@@ -106,7 +94,6 @@ export function App() {
   const [mapLocation, setMapLocation] = useState<Coordinate | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [now, setNow] = useState(currentHour);
-  const [inputTime, setInputTime] = useState(() => localInput(currentHour()));
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<'route' | 'demo' | 'locate' | null>(null);
@@ -125,6 +112,8 @@ export function App() {
   const destinationButton = useRef<HTMLButtonElement>(null);
   const previousStage = useRef(stage);
   const version = useRef(0);
+  const homeOrigin = useRef<Coordinate | null>(null);
+  const requestedHomeLocation = useRef(false);
   useEffect(() => {
     if (previousStage.current === stage) return;
     previousStage.current = stage;
@@ -135,6 +124,14 @@ export function App() {
     const timer = window.setInterval(() => setNow(currentHour()), 30_000);
     return () => { window.clearInterval(timer); active.current?.abort(); };
   }, []);
+  useEffect(() => {
+    if (stage !== 'home' || requestedHomeLocation.current || !navigator.geolocation) return;
+    requestedHomeLocation.current = true;
+    const started = version.current;
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      if (version.current === started) setMapLocation([coords.longitude, coords.latitude]);
+    }, () => {}, { timeout: 8000, maximumAge: 120_000 });
+  }, [stage]);
   const openNotificationRoute = useEffectEvent(() => {
     const url = new URL(window.location.href);
     if (!isYangjaeNotification(url.searchParams)) return;
@@ -186,6 +183,7 @@ export function App() {
       }
       if (target === 'origin') setOrigin(place);
       else setDestination(place);
+      setDemo(false);
       go('confirm');
       requestAnimationFrame(() => (target === 'origin' ? originButton.current : destinationButton.current)?.focus());
     } catch {
@@ -235,14 +233,12 @@ export function App() {
       }
       setOrigin(from);
       setDestination(to);
-      setInputTime(demoTime);
       setDemo(true);
       go('confirm');
     } catch {
       if (!controller.signal.aborted) {
         setBusy(null);
-        setError(openResults ? '양재 시연 장소를 불러오지 못했어요. 다시 시도해 주세요.'
-          : '시연 장소를 불러오지 못했어요. 장소를 직접 선택하고 과거 시각을 지정할 수 있어요.');
+        setError('경로에 필요한 장소를 찾지 못했어요. 다시 시도해 주세요.');
       }
     }
   }
@@ -251,14 +247,9 @@ export function App() {
       edit(destination ? 'origin' : 'destination');
       return;
     }
-    const timestamp = dateTimeFromKst(inputTime);
-    if (!Number.isFinite(timestamp) || timestamp % hourMs !== 0 || timestamp > currentHour() + 24 * hourMs
-      || timestamp < Date.UTC(2022, 0, 1)) {
-      setError('2022년 이후부터 현재 기준 24시간 뒤까지의 정각을 선택해 주세요.');
-      return;
-    }
-    await showComparison({ origin, destination, mode: weatherMode(timestamp),
-      selectedAt: new Date(timestamp).toISOString(), model: demo && inputTime === demoTime ? 'ecmwf_aifs025_single' : undefined });
+    await showComparison({ origin, destination, mode: demo ? 'historical_replay' : 'current',
+      selectedAt: new Date(demo ? dateTimeFromKst(demoTime) : currentHour()).toISOString(),
+      model: demo ? 'ecmwf_aifs025_single' : undefined });
   }
   async function showComparison(request: RouteRequest, fromNotification = false) {
     active.current?.abort();
@@ -272,7 +263,6 @@ export function App() {
       if (fromNotification) {
         setOrigin(request.origin);
         setDestination(request.destination);
-        setInputTime(demoTime);
         setDemo(true);
       }
       setResult(next);
@@ -291,10 +281,9 @@ export function App() {
   }
 
   function startSearch() {
-    setOrigin(mapLocation ? selectedPlace(mapLocation, 'device') : null);
+    setOrigin(homeOrigin.current ? selectedPlace(homeOrigin.current, 'device') : null);
     setDestination(null);
     setDemo(false);
-    setInputTime(localInput(currentHour()));
     go('confirm');
   }
 
@@ -303,7 +292,10 @@ export function App() {
       const started = version.current;
       void routeMetadata().then(({ boundary }) => {
         if (started !== version.current) return;
-        if (inCity(point, boundary)) setMapLocation(point);
+        if (inCity(point, boundary)) {
+          homeOrigin.current = point;
+          setMapLocation(point);
+        }
         else setError('서울 안에서 현재 위치로 출발하거나 출발지를 직접 선택해 주세요.');
       }).catch(() => { if (started === version.current) setError(routeErrors.MAP_DATA_UNAVAILABLE); });
     });
@@ -320,7 +312,7 @@ export function App() {
     <button type="button" className="button icon back" aria-label={label} onClick={() => go(to)}>‹</button>;
   const message = <>
     {busy && <p role="status" className="notice progress">
-      {busy === 'route' ? '경로를 찾고 있어요…' : busy === 'demo' ? '시연 장소를 찾고 있어요…' : '현재 위치를 확인하고 있어요…'}
+      {busy === 'locate' ? '현재 위치를 확인하고 있어요…' : '경로를 찾고 있어요…'}
     </p>}
     {error && <p role="alert" className="notice error">{error}</p>}
   </>;
@@ -343,9 +335,9 @@ export function App() {
           <PushDemo />
         </details>
         <details className="menu-section">
-          <summary>시연 경로</summary>
+          <summary>경로 바로 열기</summary>
           <div className="menu-actions">
-            {([['yangjae', '양재 시연 열기'], ['hyehwa', '혜화역에서 병원까지'], ['cityHall', '시청역에서 서울광장까지']] as const)
+            {([['yangjae', '양재역에서 우체국까지'], ['hyehwa', '혜화역에서 병원까지'], ['cityHall', '시청역에서 서울광장까지']] as const)
               .map(([id, label]) => <button key={id} type="button" className="button outlined"
                 onClick={() => { menuDialog.current?.close(); void applyDemo(id); }}>{label}</button>)}
           </div>
@@ -364,7 +356,7 @@ export function App() {
         </header>
         <div className="home-map-layer">
           <Suspense fallback={mapLoading}>
-            <MapView origin={null} destination={null} location={mapLocation}
+            <MapView origin={null} destination={null} location={mapLocation} initialZoom={15}
               onLocate={useHomeLocation} locating={busy === 'locate'} />
           </Suspense>
         </div>
@@ -376,7 +368,7 @@ export function App() {
         </section>
       </section>}
       {stage === 'notification' && <section className="panel">
-        <h1 ref={title} tabIndex={-1}>양재 시연 경로</h1>
+        <h1 ref={title} tabIndex={-1}>양재 도보 경로</h1>
         <p>양재역 4번 출구 → 양재동우체국</p>
         {error && <button className="button filled" onClick={() => void applyDemo('yangjae', true)}>다시 시도</button>}
       </section>}
@@ -394,14 +386,14 @@ export function App() {
               <span>{place?.name ?? '입력하기'}{place?.address && <small>{place.address}</small>}</span>
               <span aria-hidden="true">›</span>
             </button>)}
-          <button type="button" className="button outlined current-origin" disabled={busy === 'locate'}
-            onClick={() => { setDemo(false); locate((point) => void choose(selectedPlace(point, 'device'), 'origin')); }}>
+          {origin?.coordinate_source !== 'device' && <button type="button" className="button outlined current-origin" disabled={busy === 'locate'}
+            onClick={() => locate((point) => void choose(selectedPlace(point, 'device'), 'origin'))}>
             현재 위치를 출발지로
-          </button>
+          </button>}
           {editingPlace && <div className="inline-search" onKeyDown={(event) => {
             if (event.key === 'Escape') { event.preventDefault(); closeEditor(); }
           }}>
-            <PlaceSearch key={field} field={field} onSelect={(place) => { setDemo(false); void choose(place); }}
+            <PlaceSearch key={field} field={field} onSelect={(place) => void choose(place)}
               onPick={() => { setDraftPoint(null); setEditingPlace(false); setPickingOnMap(true); }} />
           </div>}
           {pickingOnMap && <p className="pick-instruction">지도에서 {field === 'origin' ? '출발지' : '목적지'}를 눌러 주세요.</p>}
@@ -415,19 +407,11 @@ export function App() {
         <div className="route-input-footer">
           {pickingOnMap ? <div className="button-row">
             <button className="button filled main-action" disabled={!draftPoint}
-              onClick={() => { if (draftPoint) { setDemo(false); void choose(selectedPlace(draftPoint, 'map')); } }}>이 위치 사용</button>
+              onClick={() => { if (draftPoint) void choose(selectedPlace(draftPoint, 'map')); }}>이 위치 사용</button>
             <button className="button outlined" onClick={() => edit(field)}>지도 선택 취소</button>
           </div> : <>
             <button className="button filled main-action" disabled={busy === 'route'} onClick={() => void calculate()}>경로 확인하기</button>
             {busy === 'route' && <button className="button outlined" onClick={cancel}>계산 취소</button>}
-            <details className="time-options">
-              <summary>기상 시각 · {formatKst(dateTimeFromKst(inputTime) || currentHour())}</summary>
-              <label className="time-field">기상 적용 시각 (한국 시간)
-                <input type="datetime-local" value={inputTime} step="3600" min="2022-01-02T00:00"
-                  max={localInput(now + 24 * hourMs)} onChange={(event) => { setDemo(false); setInputTime(event.target.value); }} />
-              </label>
-              <p>과거 또는 앞으로 24시간까지의 정각을 선택하세요.</p>
-            </details>
           </>}
         </div>
       </section>}
@@ -444,7 +428,7 @@ export function App() {
               location={guidanceMode === 'tracking' || guidanceMode === 'arrived' ? guidePosition : null} />
           </Suspense>
           <RouteResults key={result.selectedAt + result.recommendation.status}
-            result={result} selected={selectedRoute} onSelect={setSelectedRoute} onRetry={() => void calculate()}
+            result={result} now={now} selected={selectedRoute} onSelect={setSelectedRoute} onRetry={() => void calculate()}
             instructionPortal={instructionPortal} destination={destination?.name ?? '목적지'}
             guidanceMode={guidanceMode} onModeChange={setGuidanceMode} onPositionChange={setGuidePosition} />
         </div>
