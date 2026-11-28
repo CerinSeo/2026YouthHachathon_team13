@@ -114,3 +114,5 @@ npm run check:secrets
 `docs/TASKS.md`의 작업 ID 하나를 선택해 구현·검증한 뒤 기능 단위로 커밋하고
 현재 작업 브랜치에 푸시한다. 커밋·푸시 세부 규칙은 `AGENTS.md`를 따른다.
 
+## 결과 링크
+https://bingbingzero-team13.azurewebsites.net/
